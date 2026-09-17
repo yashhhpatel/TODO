@@ -20,17 +20,16 @@ class LevelGenerator {
   LevelDefinition generate(int level) {
     assert(bank.isLoaded, 'WordBank must be loaded first');
     final profile = Difficulty.forLevel(level);
-    final category = bank.categoryForLevel(level);
 
     // Try the full profile first, then progressively relax word count.
     for (int wanted = profile.wordCount; wanted >= 3; wanted--) {
-      final words = bank.selectWords(
+      final selection = bank.selectForLevel(
         level: level,
-        category: category,
         count: wanted,
         minLen: profile.minWordLen,
         maxLen: profile.maxWordLen,
       );
+      final words = selection.words;
       if (words.length < wanted) continue;
 
       for (int attempt = 0; attempt < _maxOuterAttempts; attempt++) {
@@ -43,7 +42,7 @@ class LevelGenerator {
         );
         if (placed == null) continue;
 
-        final def = _assemble(level, profile, category, placed.grid,
+        final def = _assemble(level, profile, selection.category, placed.grid,
             placed.placements);
         if (_validate(def)) return def;
       }

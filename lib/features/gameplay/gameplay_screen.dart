@@ -262,15 +262,29 @@ class _GameplayScreenState extends State<GameplayScreen> {
                 builder: (context, constraints) {
                   final gridSide = _minD(
                     constraints.maxWidth - 32,
-                    constraints.maxHeight * 0.52,
+                    constraints.maxHeight * 0.5,
                   );
                   final cellSize = gridSide / _controller.level.gridSize;
                   return Column(
                     children: [
-                      const SizedBox(height: 8),
-                      _buildGrid(gridSide, cellSize),
-                      const SizedBox(height: 12),
-                      Expanded(child: _buildWordList()),
+                      // Grid + word list are vertically centred in the
+                      // available space so the grid sits comfortably below the
+                      // header rather than hugging the top.
+                      Expanded(
+                        child: Center(
+                          child: SingleChildScrollView(
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                _buildGrid(gridSide, cellSize),
+                                const SizedBox(height: 28),
+                                _buildWordList(),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
                       _buildHintBar(),
                     ],
                   );
@@ -310,7 +324,7 @@ class _GameplayScreenState extends State<GameplayScreen> {
     return AnimatedBuilder(
       animation: _controller,
       builder: (context, _) {
-        return SingleChildScrollView(
+        return Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Column(
             children: [

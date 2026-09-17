@@ -6,10 +6,11 @@ import 'package:word_finder/models/word_placement.dart';
 WordBank _bank() {
   final b = WordBank.instance;
   b.loadFromMap({
-    'Animals': ['CAT','DOG','COW','FOX','LION','BEAR','WOLF','TIGER','ZEBRA','HORSE','SNAKE','WHALE','SHARK','PANDA','MOOSE','OTTER','CAMEL'],
-    'Fruits': ['FIG','KIWI','LIME','PEAR','PLUM','APPLE','GRAPE','MELON','MANGO','PEACH','LEMON','BANANA','ORANGE','CHERRY'],
-    'Food': ['PIE','JAM','EGG','RICE','CAKE','SOUP','BREAD','PASTA','PIZZA','SALAD','HONEY','CHEESE','BUTTER','COOKIE'],
-    'Nature': ['SUN','SKY','SEA','TREE','LEAF','ROCK','LAKE','RIVER','OCEAN','BEACH','STONE','STORM','FOREST','ISLAND'],
+    'Animals': ['CAT','DOG','COW','FOX','OWL','BAT','ANT','BEE','PIG','HEN','RAM','ELK','APE','EEL','LION','BEAR','WOLF','TIGER','ZEBRA','HORSE','SNAKE','WHALE','SHARK','PANDA','MOOSE','OTTER','CAMEL','CHEETAH','DOLPHIN','ELEPHANT'],
+    'Fruits': ['FIG','KIWI','LIME','PEAR','PLUM','APPLE','GRAPE','MELON','MANGO','PEACH','LEMON','BANANA','ORANGE','CHERRY','APRICOT','AVOCADO','COCONUT'],
+    'Food': ['PIE','JAM','EGG','HAM','BUN','RICE','CAKE','SOUP','BREAD','PASTA','PIZZA','SALAD','HONEY','CHEESE','BUTTER','COOKIE','PANCAKE','SANDWICH'],
+    'Nature': ['SUN','SKY','SEA','ICE','MUD','FOG','DEW','TREE','LEAF','ROCK','LAKE','RIVER','OCEAN','BEACH','STONE','STORM','FOREST','ISLAND','GLACIER','MOUNTAIN'],
+    'Body': ['ARM','EAR','EYE','LEG','JAW','RIB','HIP','TOE','LIP','GUM','HAND','FOOT','NOSE','HEAD','KNEE','CHEST','BRAIN','HEART','FINGER','MUSCLE'],
   });
   return b;
 }
@@ -63,5 +64,40 @@ void main() {
 
   test('all 8 directions are representable', () {
     expect(WordDirection.values.length, 8);
+  });
+
+  test('early levels start with short (3-letter) words', () {
+    for (final level in [1, 2, 3, 4, 5]) {
+      final def = gen.generate(level);
+      for (final w in def.words) {
+        expect(w.length, 3, reason: 'level $level word $w should be 3 letters');
+      }
+    }
+  });
+
+  test('word length increases with progression', () {
+    final maxLenEarly =
+        gen.generate(2).words.map((w) => w.length).reduce((a, b) => a > b ? a : b);
+    final maxLenMid =
+        gen.generate(40).words.map((w) => w.length).reduce((a, b) => a > b ? a : b);
+    expect(maxLenMid, greaterThan(maxLenEarly));
+  });
+
+  test('consecutive levels do not reuse the same word set (variety)', () {
+    for (int level = 1; level < 8; level++) {
+      final a = gen.generate(level).words.toSet();
+      final b = gen.generate(level + 1).words.toSet();
+      // Neighbouring levels should not be identical word sets.
+      expect(a.difference(b).isNotEmpty || b.difference(a).isNotEmpty, isTrue,
+          reason: 'levels $level and ${level + 1} share every word');
+    }
+  });
+
+  test('a run of levels uses a varied pool, not the same few words', () {
+    final all = <String>{};
+    for (int level = 1; level <= 12; level++) {
+      all.addAll(gen.generate(level).words);
+    }
+    expect(all.length, greaterThan(10));
   });
 }

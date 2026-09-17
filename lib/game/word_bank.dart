@@ -42,12 +42,6 @@ class WordBank {
     _loaded = true;
   }
 
-  String categoryForLevel(int level) {
-    final n = _categoryNames.length;
-    // Rotate through categories so neighbours differ, deterministic per level.
-    return _categoryNames[(level - 1) % n];
-  }
-
   /// Deterministically shuffle a list using a seed (Fisher-Yates).
   List<T> _seededShuffle<T>(List<T> src, int seed) {
     final out = List<T>.from(src);
@@ -61,56 +55,77 @@ class WordBank {
     return out;
   }
 
-  /// Select [count] distinct words for a level within [minLen]..[maxLen].
+  /// Flat, de-duplicated pool of (word, category) within a length band, stably
+  /// shuffled so the whole pool has one deterministic order per band. Because
+  /// selection walks this shared order with an offset that advances every
+  /// level, consecutive levels draw different words until the pool cycles.
+  List<MapEntry<String, String>> _bandPool(int minLen, int maxLen) {
+    final seen = <String>{};
+    final flat = <MapEntry<String, String>>[];
+    for (final cat in _categoryNames) {
+      for (final w in _byCategory[cat]!) {
+        if (w.length >= minLen && w.length <= maxLen && seen.add(w)) {
+          flat.add(MapEntry(w, cat));
+        }
+      }
+    }
+    // Seed keyed by the band so each length stage has its own stable order.
+    return _seededShuffle(flat, minLen * 131 + maxLen);
+  }
+
+  /// Selects [count] distinct target words for a level and a fitting category
+  /// label. Draws from the full cross-category pool within the length band so
+  /// there is always plenty of variety, even for short 3-letter stages where a
+  /// single themed category would be too small.
   ///
-  /// Deterministic for a given (level, category, count, length window). Words
-  /// are drawn from a level-rotated offset into a stably shuffled pool, which
-  /// naturally avoids nearby repetition until the pool cycles.
-  List<String> selectWords({
+  /// Deterministic: the same (level, count, band) always yields the same words.
+  ({String category, List<String> words}) selectForLevel({
     required int level,
-    required String category,
     required int count,
     required int minLen,
     required int maxLen,
   }) {
-    final pool = _byCategory[category] ?? const [];
-    // Stable shuffle keyed by category name so each category has its own order.
-    final shuffled = _seededShuffle(pool, category.hashCode & 0x7fffffff);
-
-    bool fits(String w) => w.length >= minLen && w.length <= maxLen;
-
-    final primary = shuffled.where(fits).toList();
-    // Fallback: widen from all categories if a category is too small.
-    final widened = <String>[];
-    if (primary.length < count) {
-      for (final c in _categoryNames) {
-        for (final w in _byCategory[c]!) {
-          if (w.length >= minLen && w.length <= maxLen) widened.add(w);
-        }
-      }
+    var pool = _bandPool(minLen, maxLen);
+    // If a stage is too thin, widen downward (shorter words) but never longer
+    // than the grid allows (maxLen is the hard cap).
+    if (pool.length < count && minLen > 3) {
+      pool = _bandPool(3, maxLen);
     }
-    final source = primary.length >= count ? primary : widened.toSet().toList()
-      ..sort();
-    final ordered = primary.length >= count
-        ? primary
-        : _seededShuffle(source, 99991);
-
-    if (ordered.isEmpty) return [];
+    if (pool.isEmpty) {
+      pool = _bandPool(3, 99); // last resort: anything
+    }
+    if (pool.isEmpty) return (category: 'Words', words: const []);
 
     final chosen = <String>[];
+    final cats = <String>[];
     final seen = <String>{};
-    // Offset by level to move the window forward each level.
-    int idx = (level * 7) % ordered.length;
+    // Advance the window by a full batch each level → no nearby repeats.
+    int idx = ((level - 1) * count) % pool.length;
     int guard = 0;
-    while (chosen.length < count && guard < ordered.length * 2) {
-      final w = ordered[idx % ordered.length];
-      if (!seen.contains(w)) {
-        seen.add(w);
-        chosen.add(w);
+    while (chosen.length < count && guard < pool.length) {
+      final entry = pool[idx % pool.length];
+      if (seen.add(entry.key)) {
+        chosen.add(entry.key);
+        cats.add(entry.value);
       }
       idx++;
       guard++;
     }
-    return chosen;
+
+    // Label the level with whichever category contributed the most words.
+    final counts = <String, int>{};
+    for (final c in cats) {
+      counts[c] = (counts[c] ?? 0) + 1;
+    }
+    String label = 'Words';
+    int best = -1;
+    counts.forEach((c, n) {
+      if (n > best) {
+        best = n;
+        label = c;
+      }
+    });
+
+    return (category: label, words: chosen);
   }
 }

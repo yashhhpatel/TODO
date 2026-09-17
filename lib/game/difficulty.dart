@@ -64,25 +64,66 @@ class Difficulty {
     }
   }
 
+  /// Number of target words, growing with level and capped by the grid.
+  static int _wordCount(int level, int size) {
+    int c;
+    if (level <= 3) {
+      c = 3;
+    } else if (level <= 10) {
+      c = 4;
+    } else if (level <= 25) {
+      c = 5;
+    } else if (level <= 60) {
+      c = 6;
+    } else {
+      c = 7;
+    }
+    // Never ask for more words than comfortably fit the grid.
+    return c.clamp(3, size - 1);
+  }
+
+  /// Staged word-length band. Starts at strictly 3-letter words, then widens
+  /// after ~5 levels to 4, then 5, then longer — a smooth difficulty ramp.
+  static ({int min, int max}) _lengthBand(int level, int size) {
+    int lo, hi;
+    if (level <= 5) {
+      lo = 3;
+      hi = 3;
+    } else if (level <= 12) {
+      lo = 3;
+      hi = 4;
+    } else if (level <= 25) {
+      lo = 4;
+      hi = 5;
+    } else if (level <= 45) {
+      lo = 4;
+      hi = 6;
+    } else if (level <= 90) {
+      lo = 5;
+      hi = 7;
+    } else if (level <= 180) {
+      lo = 5;
+      hi = 8;
+    } else {
+      lo = 6;
+      hi = 9;
+    }
+    // A word can never be longer than the grid.
+    hi = hi > size ? size : hi;
+    if (lo > hi) lo = hi;
+    return (min: lo, max: hi);
+  }
+
   static DifficultyProfile forLevel(int level) {
     final size = _gridSize(level);
     final tier = _tier(level);
-
-    // Word count grows smoothly from 3 toward a cap that fits the grid.
-    final grown = 3 + (level ~/ 12);
-    final cap = size - 1; // keep comfortably placeable
-    final wordCount = grown.clamp(3, cap.clamp(3, 9));
-
-    // Length window widens as levels progress but never exceeds the grid.
-    final minLen = level <= 15 ? 3 : (level <= 80 ? 3 : 4);
-    var maxLen = 3 + (level ~/ 20);
-    maxLen = maxLen.clamp(4, size);
+    final band = _lengthBand(level, size);
 
     return DifficultyProfile(
       gridSize: size,
-      wordCount: wordCount,
-      minWordLen: minLen,
-      maxWordLen: maxLen,
+      wordCount: _wordCount(level, size),
+      minWordLen: band.min,
+      maxWordLen: band.max,
       tier: tier,
       directions: _directions(tier),
     );

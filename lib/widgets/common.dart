@@ -8,6 +8,7 @@ class PrimaryButton extends StatelessWidget {
   final IconData? icon;
   final Color? color;
   final bool expand;
+  final bool large;
 
   const PrimaryButton({
     super.key,
@@ -16,32 +17,40 @@ class PrimaryButton extends StatelessWidget {
     this.icon,
     this.color,
     this.expand = true,
+    this.large = false,
   });
 
   @override
   Widget build(BuildContext context) {
-    final btn = Material(
-      color: onTap == null ? AppColors.grey300 : (color ?? AppColors.ink),
+    final bg = onTap == null ? AppColors.grey300 : (color ?? AppColors.ink);
+    // Auto-contrast: dark text on light buttons, light text on dark buttons.
+    final fg = bg.computeLuminance() > 0.5 ? AppColors.ink : Colors.white;
+    final vPad = large ? 20.0 : 16.0;
+    final fontSize = large ? 18.0 : 16.0;
+    final iconSize = large ? 24.0 : 20.0;
+
+    return Material(
+      color: bg,
       borderRadius: BorderRadius.circular(AppRadii.md),
       child: InkWell(
         borderRadius: BorderRadius.circular(AppRadii.md),
         onTap: onTap,
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 22),
+          padding: EdgeInsets.symmetric(vertical: vPad, horizontal: 22),
           child: Row(
             mainAxisSize: expand ? MainAxisSize.max : MainAxisSize.min,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               if (icon != null) ...[
-                Icon(icon, color: Colors.white, size: 20),
+                Icon(icon, color: fg, size: iconSize),
                 const SizedBox(width: 10),
               ],
               Text(
                 label,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 16,
+                style: TextStyle(
+                  color: fg,
+                  fontWeight: FontWeight.w700,
+                  fontSize: fontSize,
                 ),
               ),
             ],
@@ -49,7 +58,6 @@ class PrimaryButton extends StatelessWidget {
         ),
       ),
     );
-    return btn;
   }
 }
 

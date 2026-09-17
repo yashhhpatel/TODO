@@ -173,6 +173,7 @@ class _HeroCard extends StatelessWidget {
             label: currentLevel > 1 ? 'Continue' : 'Play',
             icon: Icons.play_arrow_rounded,
             color: Colors.white,
+            large: true,
             onTap: () => GameplayScreen.open(context, currentLevel),
           ),
         ],
