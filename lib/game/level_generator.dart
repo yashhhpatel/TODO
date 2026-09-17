@@ -22,12 +22,11 @@ class LevelGenerator {
     final profile = Difficulty.forLevel(level);
 
     // Try the full profile first, then progressively relax word count.
-    for (int wanted = profile.wordCount; wanted >= 3; wanted--) {
+    for (int wanted = profile.wordCount; wanted >= 2; wanted--) {
       final selection = bank.selectForLevel(
         level: level,
         count: wanted,
-        minLen: profile.minWordLen,
-        maxLen: profile.maxWordLen,
+        length: profile.wordLength,
       );
       final words = selection.words;
       if (words.length < wanted) continue;
@@ -44,12 +43,13 @@ class LevelGenerator {
 
         final def = _assemble(level, profile, selection.category, placed.grid,
             placed.placements);
-        if (_validate(def)) return def;
+        if (_validate(def, profile.wordLength)) return def;
       }
     }
 
-    // Guaranteed fallback: a trivially solvable small level.
-    return _fallback(level);
+    // Guaranteed fallback: a trivially solvable level that still honours the
+    // exact grid size and word length for this range.
+    return _fallback(level, profile);
   }
 
   LevelDefinition _assemble(
@@ -82,7 +82,7 @@ class LevelGenerator {
   }
 
   /// Full structural validation. Every failure means we discard and retry.
-  bool _validate(LevelDefinition def) {
+  bool _validate(LevelDefinition def, int expectedLen) {
     final size = def.gridSize;
     if (def.grid.length != size) return false;
     for (final row in def.grid) {
@@ -94,6 +94,7 @@ class LevelGenerator {
     if (def.placements.isEmpty) return false;
 
     for (final p in def.placements) {
+      if (p.word.length != expectedLen) return false; // exact length required
       if (p.cells.length != p.word.length) return false;
       for (int i = 0; i < p.cells.length; i++) {
         final c = p.cells[i];
@@ -108,26 +109,45 @@ class LevelGenerator {
     return true;
   }
 
-  LevelDefinition _fallback(int level) {
-    const words = ['CAT', 'DOG', 'SUN'];
-    const size = 5;
-    final rng = Random(level);
-    final placed = WordPlacer.tryPlace(
-      words: words,
-      size: size,
-      directions: const [WordDirection.right, WordDirection.down],
-      rng: rng,
-    )!;
-    return LevelDefinition(
-      levelNumber: level,
-      gridSize: size,
-      category: 'Animals',
-      difficulty: 1,
-      grid: placed.grid,
-      placements: placed.placements,
-      baseReward: 30,
-      threeStarSeconds: 26,
-      twoStarSeconds: 52,
-    );
+  LevelDefinition _fallback(int level, DifficultyProfile profile) {
+    final size = profile.gridSize;
+    // Easiest possible layout: a few exact-length words, straight lines only.
+    for (int wanted = 3; wanted >= 1; wanted--) {
+      final sel = bank.selectForLevel(
+        level: level,
+        count: wanted,
+        length: profile.wordLength,
+      );
+      if (sel.words.length < wanted) continue;
+      for (int attempt = 0; attempt < 200; attempt++) {
+        final placed = WordPlacer.tryPlace(
+          words: sel.words,
+          size: size,
+          directions: const [WordDirection.right, WordDirection.down],
+          rng: Random(level * 7 + attempt),
+        );
+        if (placed == null) continue;
+        return LevelDefinition(
+          levelNumber: level,
+          gridSize: size,
+          category: sel.category,
+          difficulty: profile.tier,
+          grid: placed.grid,
+          placements: placed.placements,
+          baseReward: RewardCalculator.baseReward(
+              tier: profile.tier,
+              wordCount: placed.placements.length,
+              gridSize: size),
+          threeStarSeconds: RewardCalculator.starThresholds(
+                  wordCount: placed.placements.length, gridSize: size)
+              .three,
+          twoStarSeconds: RewardCalculator.starThresholds(
+                  wordCount: placed.placements.length, gridSize: size)
+              .two,
+        );
+      }
+    }
+    // Should be unreachable given the bundled vocabulary covers all lengths.
+    throw StateError('Unable to generate level $level');
   }
 }

@@ -1,40 +1,63 @@
 import '../models/word_placement.dart';
 
-/// Derived parameters for a given level number. Pure function of the level
-/// number so the whole curve is deterministic and testable.
+/// Derived parameters for a given level number. Grid size and word length are
+/// fixed per range exactly as specified — every target word in a level has the
+/// same, exact length.
 class DifficultyProfile {
   final int gridSize;
   final int wordCount;
-  final int minWordLen;
-  final int maxWordLen;
-  final int tier; // 1..5
+  final int wordLength; // exact length every target word must have
+  final int tier; // 1..5 (controls allowed directions)
   final List<WordDirection> directions;
 
   const DifficultyProfile({
     required this.gridSize,
     required this.wordCount,
-    required this.minWordLen,
-    required this.maxWordLen,
+    required this.wordLength,
     required this.tier,
     required this.directions,
   });
+
+  int get minWordLen => wordLength;
+  int get maxWordLen => wordLength;
 }
 
 class Difficulty {
   Difficulty._();
 
-  static int _gridSize(int level) {
-    if (level <= 5) return 5;
-    if (level <= 20) return 6;
-    if (level <= 60) return 7;
-    if (level <= 150) return 8;
-    return 9;
+  /// (gridSize, exact word length) for each level range — the exact spec.
+  static ({int grid, int len}) _gridAndLength(int level) {
+    if (level <= 25) return (grid: 6, len: 4);
+    if (level <= 50) return (grid: 7, len: 5);
+    if (level <= 75) return (grid: 8, len: 6);
+    if (level <= 100) return (grid: 9, len: 7);
+    if (level <= 150) return (grid: 10, len: 8);
+    if (level <= 200) return (grid: 11, len: 9);
+    if (level <= 300) return (grid: 12, len: 10);
+    if (level <= 500) return (grid: 13, len: 11);
+    return (grid: 14, len: 12); // 501..1000
+  }
+
+  /// Target word count per range, rising gently so difficulty grows on top of
+  /// the increasing grid size / word length. Always fits the grid.
+  static int _wordCount(int level, int grid) {
+    int c;
+    if (level <= 25) {
+      c = 4;
+    } else if (level <= 75) {
+      c = 5;
+    } else if (level <= 200) {
+      c = 5;
+    } else {
+      c = 6;
+    }
+    return c.clamp(3, grid - 1);
   }
 
   static int _tier(int level) {
-    if (level <= 10) return 1;
-    if (level <= 40) return 2;
-    if (level <= 120) return 3;
+    if (level <= 25) return 1;
+    if (level <= 75) return 2;
+    if (level <= 150) return 3;
     if (level <= 300) return 4;
     return 5;
   }
@@ -64,66 +87,13 @@ class Difficulty {
     }
   }
 
-  /// Number of target words, growing with level and capped by the grid.
-  static int _wordCount(int level, int size) {
-    int c;
-    if (level <= 3) {
-      c = 3;
-    } else if (level <= 10) {
-      c = 4;
-    } else if (level <= 25) {
-      c = 5;
-    } else if (level <= 60) {
-      c = 6;
-    } else {
-      c = 7;
-    }
-    // Never ask for more words than comfortably fit the grid.
-    return c.clamp(3, size - 1);
-  }
-
-  /// Staged word-length band. Starts at strictly 3-letter words, then widens
-  /// after ~5 levels to 4, then 5, then longer — a smooth difficulty ramp.
-  static ({int min, int max}) _lengthBand(int level, int size) {
-    int lo, hi;
-    if (level <= 5) {
-      lo = 3;
-      hi = 3;
-    } else if (level <= 12) {
-      lo = 3;
-      hi = 4;
-    } else if (level <= 25) {
-      lo = 4;
-      hi = 5;
-    } else if (level <= 45) {
-      lo = 4;
-      hi = 6;
-    } else if (level <= 90) {
-      lo = 5;
-      hi = 7;
-    } else if (level <= 180) {
-      lo = 5;
-      hi = 8;
-    } else {
-      lo = 6;
-      hi = 9;
-    }
-    // A word can never be longer than the grid.
-    hi = hi > size ? size : hi;
-    if (lo > hi) lo = hi;
-    return (min: lo, max: hi);
-  }
-
   static DifficultyProfile forLevel(int level) {
-    final size = _gridSize(level);
+    final gl = _gridAndLength(level);
     final tier = _tier(level);
-    final band = _lengthBand(level, size);
-
     return DifficultyProfile(
-      gridSize: size,
-      wordCount: _wordCount(level, size),
-      minWordLen: band.min,
-      maxWordLen: band.max,
+      gridSize: gl.grid,
+      wordCount: _wordCount(level, gl.grid),
+      wordLength: gl.len,
       tier: tier,
       directions: _directions(tier),
     );

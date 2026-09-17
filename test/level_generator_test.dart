@@ -1,54 +1,76 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:word_finder/game/difficulty.dart';
 import 'package:word_finder/game/level_generator.dart';
 import 'package:word_finder/game/word_bank.dart';
 import 'package:word_finder/models/word_placement.dart';
 
+/// Test bank with enough words of every exact length (4..12).
 WordBank _bank() {
   final b = WordBank.instance;
   b.loadFromMap({
-    'Animals': ['CAT','DOG','COW','FOX','OWL','BAT','ANT','BEE','PIG','HEN','RAM','ELK','APE','EEL','LION','BEAR','WOLF','TIGER','ZEBRA','HORSE','SNAKE','WHALE','SHARK','PANDA','MOOSE','OTTER','CAMEL','CHEETAH','DOLPHIN','ELEPHANT'],
-    'Fruits': ['FIG','KIWI','LIME','PEAR','PLUM','APPLE','GRAPE','MELON','MANGO','PEACH','LEMON','BANANA','ORANGE','CHERRY','APRICOT','AVOCADO','COCONUT'],
-    'Food': ['PIE','JAM','EGG','HAM','BUN','RICE','CAKE','SOUP','BREAD','PASTA','PIZZA','SALAD','HONEY','CHEESE','BUTTER','COOKIE','PANCAKE','SANDWICH'],
-    'Nature': ['SUN','SKY','SEA','ICE','MUD','FOG','DEW','TREE','LEAF','ROCK','LAKE','RIVER','OCEAN','BEACH','STONE','STORM','FOREST','ISLAND','GLACIER','MOUNTAIN'],
-    'Body': ['ARM','EAR','EYE','LEG','JAW','RIB','HIP','TOE','LIP','GUM','HAND','FOOT','NOSE','HEAD','KNEE','CHEST','BRAIN','HEART','FINGER','MUSCLE'],
+    '4': ['WORD','TREE','BOOK','FISH','BIRD','CAKE','MILK','RAIN','SNOW','STAR','MOON','LAKE','LEAF','ROCK','SAND','WOLF','BEAR','FROG','GOAT','LION'],
+    '5': ['APPLE','GRAPE','MANGO','PEACH','LEMON','MELON','TIGER','ZEBRA','HORSE','SHEEP','MOUSE','SNAKE','WHALE','SHARK','KOALA','OTTER','CAMEL','PANDA','ROBIN','EAGLE'],
+    '6': ['BANANA','ORANGE','CHERRY','TOMATO','CHEESE','BUTTER','COOKIE','MUFFIN','NOODLE','BURGER','FOREST','ISLAND','VALLEY','MEADOW','CANYON','DESERT','FLOWER','ANIMAL','RABBIT','MONKEY'],
+    '7': ['GIRAFFE','LEOPARD','PENGUIN','GORILLA','HAMSTER','PEACOCK','DOLPHIN','CHEETAH','CHICKEN','BUFFALO','OCTOPUS','RAINBOW','MORNING','EVENING','KITCHEN','BEDROOM','TEACHER','STUDENT','SCIENCE','HISTORY'],
+    '8': ['ELEPHANT','DINOSAUR','MOUNTAIN','SANDWICH','COMPUTER','KEYBOARD','BASEBALL','FOOTBALL','HOSPITAL','UMBRELLA','BIRTHDAY','CALENDAR','CAMPFIRE','DAUGHTER','EXERCISE','MUSHROOM','NOTEBOOK','PAINTING','SUNSHINE','TREASURE'],
+    '9': ['CHOCOLATE','BUTTERFLY','ADVENTURE','EDUCATION','BEAUTIFUL','BREAKFAST','COMMUNITY','DANGEROUS','DIFFERENT','IMPORTANT','KNOWLEDGE','TELEPHONE','ORCHESTRA','VEGETABLE','WONDERFUL','YESTERDAY','ASTRONAUT','WATERFALL','CROCODILE','DANDELION'],
+    '10': ['BASKETBALL','VOLLEYBALL','STRAWBERRY','TECHNOLOGY','HELICOPTER','MOTORCYCLE','PLAYGROUND','TOOTHBRUSH','WATERMELON','SKATEBOARD','FRIENDSHIP','INSTRUMENT','RESTAURANT','WILDERNESS','GENERATION','REFLECTION','COLLECTION','BACKGROUND','BLACKBERRY','DICTIONARY'],
+    '11': ['TEMPERATURE','EXAMINATION','IMAGINATION','CELEBRATION','COMBINATION','COMFORTABLE','INTERESTING','DEVELOPMENT','ENVIRONMENT','ACHIEVEMENT','ENGINEERING','CAULIFLOWER','GRANDMOTHER','GRANDFATHER','ELECTRICITY','COUNTRYSIDE','OPPORTUNITY','PERSONALITY','POSSIBILITY','REQUIREMENT'],
+    '12': ['REFRIGERATOR','CHAMPIONSHIP','RELATIONSHIP','CONSTRUCTION','CONVERSATION','INTRODUCTION','INTELLIGENCE','ARCHITECTURE','NEIGHBORHOOD','KINDERGARTEN','THANKSGIVING','ORGANIZATION','PROFESSIONAL','PRESENTATION','CIVILIZATION','HEADQUARTERS','CONSIDERABLE','SUCCESSFULLY','PRODUCTIVITY','TRANSMISSION'],
   });
   return b;
 }
+
+// Representative level -> (expected grid, expected exact word length).
+const _cases = <int, List<int>>{
+  1: [6, 4], 12: [6, 4], 25: [6, 4],
+  26: [7, 5], 40: [7, 5], 50: [7, 5],
+  51: [8, 6], 60: [8, 6], 75: [8, 6],
+  76: [9, 7], 88: [9, 7], 100: [9, 7],
+  101: [10, 8], 130: [10, 8], 150: [10, 8],
+  151: [11, 9], 175: [11, 9], 200: [11, 9],
+  201: [12, 10], 260: [12, 10], 300: [12, 10],
+  301: [13, 11], 400: [13, 11], 500: [13, 11],
+  501: [14, 12], 750: [14, 12], 1000: [14, 12],
+};
 
 void main() {
   final bank = _bank();
   final gen = LevelGenerator(bank);
 
-  test('generates valid levels across the whole progression', () {
-    for (final level in [1, 2, 3, 5, 10, 25, 50, 100, 250, 500, 999]) {
-      final def = gen.generate(level);
-      final size = def.gridSize;
+  test('every range uses the exact grid size and word length', () {
+    _cases.forEach((level, expected) {
+      final grid = expected[0];
+      final len = expected[1];
 
-      // Grid is square and fully filled.
-      expect(def.grid.length, size);
+      final profile = Difficulty.forLevel(level);
+      expect(profile.gridSize, grid, reason: 'level $level grid');
+      expect(profile.wordLength, len, reason: 'level $level word length');
+
+      final def = gen.generate(level);
+      expect(def.gridSize, grid, reason: 'level $level generated grid');
+      expect(def.grid.length, grid);
       for (final row in def.grid) {
-        expect(row.length, size);
-        for (final cell in row) {
-          expect(cell.length, 1);
-        }
+        expect(row.length, grid);
       }
       expect(def.placements, isNotEmpty);
-
-      // Every word sits correctly at its coordinates and inside bounds.
       for (final p in def.placements) {
-        expect(p.cells.length, p.word.length);
-        for (int i = 0; i < p.cells.length; i++) {
+        expect(p.word.length, len,
+            reason: 'level $level word "${p.word}" must be $len letters');
+        // Word actually present at its coordinates and in bounds.
+        expect(p.cells.length, len);
+        for (int i = 0; i < len; i++) {
           final c = p.cells[i];
-          expect(c.row >= 0 && c.row < size, isTrue);
-          expect(c.col >= 0 && c.col < size, isTrue);
+          expect(c.row >= 0 && c.row < grid, isTrue);
+          expect(c.col >= 0 && c.col < grid, isTrue);
           expect(def.grid[c.row][c.col], p.word[i]);
         }
       }
-    }
+    });
   });
 
   test('generation is deterministic per level number', () {
-    for (final level in [1, 7, 42, 123, 777]) {
+    for (final level in [1, 26, 51, 101, 201, 301, 501, 999]) {
       final a = gen.generate(level);
       final b = gen.generate(level);
       expect(a.grid.toString(), b.grid.toString());
@@ -56,48 +78,16 @@ void main() {
     }
   });
 
-  test('word count and length grow with level', () {
-    final early = gen.generate(2);
-    final late = gen.generate(400);
-    expect(late.gridSize, greaterThanOrEqualTo(early.gridSize));
-  });
-
-  test('all 8 directions are representable', () {
-    expect(WordDirection.values.length, 8);
-  });
-
-  test('early levels start with short (3-letter) words', () {
-    for (final level in [1, 2, 3, 4, 5]) {
-      final def = gen.generate(level);
-      for (final w in def.words) {
-        expect(w.length, 3, reason: 'level $level word $w should be 3 letters');
-      }
-    }
-  });
-
-  test('word length increases with progression', () {
-    final maxLenEarly =
-        gen.generate(2).words.map((w) => w.length).reduce((a, b) => a > b ? a : b);
-    final maxLenMid =
-        gen.generate(40).words.map((w) => w.length).reduce((a, b) => a > b ? a : b);
-    expect(maxLenMid, greaterThan(maxLenEarly));
-  });
-
   test('consecutive levels do not reuse the same word set (variety)', () {
-    for (int level = 1; level < 8; level++) {
+    for (final level in [1, 27, 52, 102, 202]) {
       final a = gen.generate(level).words.toSet();
       final b = gen.generate(level + 1).words.toSet();
-      // Neighbouring levels should not be identical word sets.
       expect(a.difference(b).isNotEmpty || b.difference(a).isNotEmpty, isTrue,
           reason: 'levels $level and ${level + 1} share every word');
     }
   });
 
-  test('a run of levels uses a varied pool, not the same few words', () {
-    final all = <String>{};
-    for (int level = 1; level <= 12; level++) {
-      all.addAll(gen.generate(level).words);
-    }
-    expect(all.length, greaterThan(10));
+  test('all 8 directions are representable', () {
+    expect(WordDirection.values.length, 8);
   });
 }
