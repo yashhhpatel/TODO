@@ -1,8 +1,9 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../core/theme.dart';
 import '../../widgets/common.dart';
 
+/// Result screen shown when a level is completed. It stays visible until the
+/// player explicitly chooses to move on or go home — there is no auto-advance.
 class LevelCompleteSheet extends StatefulWidget {
   final int level;
   final int stars;
@@ -15,6 +16,7 @@ class LevelCompleteSheet extends StatefulWidget {
   final int adBonus;
   final VoidCallback onWatchAd;
   final VoidCallback onNext;
+  final VoidCallback onHome;
 
   const LevelCompleteSheet({
     super.key,
@@ -29,6 +31,7 @@ class LevelCompleteSheet extends StatefulWidget {
     required this.adBonus,
     required this.onWatchAd,
     required this.onNext,
+    required this.onHome,
   });
 
   @override
@@ -38,9 +41,7 @@ class LevelCompleteSheet extends StatefulWidget {
 class _LevelCompleteSheetState extends State<LevelCompleteSheet>
     with SingleTickerProviderStateMixin {
   late final AnimationController _c;
-  Timer? _auto;
   bool _adUsed = false;
-  int _countdown = 3;
 
   @override
   void initState() {
@@ -49,26 +50,10 @@ class _LevelCompleteSheetState extends State<LevelCompleteSheet>
       vsync: this,
       duration: const Duration(milliseconds: 700),
     )..forward();
-    // Gentle auto-advance so progression never stalls, but the user can act.
-    _auto = Timer.periodic(const Duration(seconds: 1), (t) {
-      if (!mounted) return;
-      setState(() => _countdown--);
-      if (_countdown <= 0) {
-        t.cancel();
-        widget.onNext();
-      }
-    });
-  }
-
-  void _cancelAuto() {
-    _auto?.cancel();
-    _auto = null;
-    if (mounted) setState(() => _countdown = -1);
   }
 
   @override
   void dispose() {
-    _auto?.cancel();
     _c.dispose();
     super.dispose();
   }
@@ -99,8 +84,7 @@ class _LevelCompleteSheetState extends State<LevelCompleteSheet>
             child: StarRow(count: widget.stars, size: 44),
           ),
           const SizedBox(height: 16),
-          Text('Level ${widget.level} Complete!',
-              style: AppTheme.number(24)),
+          Text('Level ${widget.level} Complete!', style: AppTheme.number(24)),
           const SizedBox(height: 4),
           Text('${widget.wordsFound} / ${widget.totalWords} words found',
               style: const TextStyle(color: AppColors.grey700)),
@@ -124,29 +108,34 @@ class _LevelCompleteSheetState extends State<LevelCompleteSheet>
             ),
           ),
           const SizedBox(height: 16),
-          if (widget.canWatchAd && !_adUsed)
+          if (widget.canWatchAd && !_adUsed) ...[
             SecondaryButton(
               label: 'Watch Ad  +${widget.adBonus} Coins',
               icon: Icons.play_circle_fill_rounded,
               onTap: () {
-                _cancelAuto();
                 setState(() => _adUsed = true);
                 widget.onWatchAd();
               },
             ),
-          if (widget.canWatchAd && !_adUsed) const SizedBox(height: 10),
+            const SizedBox(height: 10),
+          ],
           PrimaryButton(
-            label: _countdown > 0 ? 'Next Level  ($_countdown)' : 'Next Level',
+            label: 'Move to Next Level',
             icon: Icons.arrow_forward_rounded,
             onTap: widget.onNext,
+          ),
+          const SizedBox(height: 10),
+          SecondaryButton(
+            label: 'Return Home',
+            icon: Icons.home_rounded,
+            onTap: widget.onHome,
           ),
         ],
       ),
     );
   }
 
-  Widget _row(String label, String value,
-      {bool bold = false, Color? color}) {
+  Widget _row(String label, String value, {bool bold = false, Color? color}) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [

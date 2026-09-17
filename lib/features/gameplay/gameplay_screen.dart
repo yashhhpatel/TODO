@@ -89,7 +89,8 @@ class _GameplayScreenState extends State<GameplayScreen> {
       seconds: _controller.elapsedSeconds,
     );
 
-    await showModalBottomSheet(
+    // The result screen stays up until the player chooses; no auto-advance.
+    final action = await showModalBottomSheet<String>(
       context: context,
       isScrollControlled: true,
       isDismissible: false,
@@ -106,7 +107,8 @@ class _GameplayScreenState extends State<GameplayScreen> {
         canWatchAd: ads.isInitialized,
         adBonus: AppConfig.levelCompleteAdBonus,
         onWatchAd: _watchRewardedForBonus,
-        onNext: () => Navigator.of(sheetCtx).pop(),
+        onNext: () => Navigator.of(sheetCtx).pop('next'),
+        onHome: () => Navigator.of(sheetCtx).pop('home'),
       ),
     );
 
@@ -119,7 +121,11 @@ class _GameplayScreenState extends State<GameplayScreen> {
       completedLevel: level.levelNumber,
       premium: player.premium,
     );
-    _goToNextLevel();
+    if (action == 'home') {
+      _returnHome();
+    } else {
+      _goToNextLevel();
+    }
   }
 
   void _watchRewardedForBonus() {
@@ -146,6 +152,12 @@ class _GameplayScreenState extends State<GameplayScreen> {
     } else {
       Navigator.of(context).pop();
     }
+  }
+
+  void _returnHome() {
+    if (_navigating) return;
+    _navigating = true;
+    Navigator.of(context).pop();
   }
 
   Future<void> _showAchievement(Achievement a) async {
@@ -380,10 +392,10 @@ class _GameplayScreenState extends State<GameplayScreen> {
         children: [
           Expanded(
             child: SecondaryButton(
-              label: 'Letter (${AppConfig.letterHintCost})',
+              label: 'Hint for Letter',
               icon: Icons.lightbulb_outline_rounded,
               onTap: () => _requestHint(
-                title: 'Letter Hint',
+                title: 'Hint for Letter',
                 cost: AppConfig.letterHintCost,
                 apply: _controller.useLetterHint,
               ),
@@ -392,10 +404,10 @@ class _GameplayScreenState extends State<GameplayScreen> {
           const SizedBox(width: 12),
           Expanded(
             child: SecondaryButton(
-              label: 'Word (${AppConfig.wordHintCost})',
+              label: 'Hint for Word',
               icon: Icons.auto_awesome_rounded,
               onTap: () => _requestHint(
-                title: 'Word Hint',
+                title: 'Hint for Word',
                 cost: AppConfig.wordHintCost,
                 apply: _controller.useWordHint,
               ),

@@ -226,12 +226,9 @@ class _HeroCard extends StatelessWidget {
           const SizedBox(height: 6),
           Text('Level $currentLevel',
               style: AppTheme.number(34, color: Colors.white)),
-          const SizedBox(height: 4),
-          const Text('of ${AppConfig.totalLevels}',
-              style: TextStyle(color: AppColors.grey500, fontSize: 13)),
           const SizedBox(height: 18),
           PrimaryButton(
-            label: currentLevel > 1 ? 'Continue' : 'Play',
+            label: 'Start',
             icon: Icons.play_arrow_rounded,
             color: Colors.white,
             large: true,
