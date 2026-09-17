@@ -223,6 +223,19 @@ class PlayerService extends ChangeNotifier {
     return unlocked;
   }
 
+  /// Upgrades a completed level's recorded stars (used by the rewarded-ad
+  /// "get 3 stars" option). Only ever raises the value, never lowers it, and
+  /// persists so every screen that reads stars reflects the new value.
+  void setLevelStars(int level, int stars) {
+    final prev = _stars[level] ?? 0;
+    final next = stars > prev ? stars : prev;
+    if (next == prev) return;
+    _stars[level] = next;
+    _persist();
+    _checkAchievements();
+    notifyListeners();
+  }
+
   // ---- Achievements ----
   int _metricValue(AchievementMetric m) {
     switch (m) {

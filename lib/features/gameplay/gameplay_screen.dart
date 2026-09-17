@@ -107,6 +107,8 @@ class _GameplayScreenState extends State<GameplayScreen> {
         canWatchAd: ads.isInitialized,
         adBonus: AppConfig.levelCompleteAdBonus,
         onWatchAd: _watchRewardedForBonus,
+        onWatchAdForStars: (onRewarded) =>
+            _watchRewardedForStars(level.levelNumber, onRewarded),
         onNext: () => Navigator.of(sheetCtx).pop('next'),
         onHome: () => Navigator.of(sheetCtx).pop('home'),
       ),
@@ -136,6 +138,21 @@ class _GameplayScreenState extends State<GameplayScreen> {
         player.addCoins(AppConfig.levelCompleteAdBonus, 'rewarded_ad');
         context.read<AudioService>().play(Sfx.coin);
         _snack('+${AppConfig.levelCompleteAdBonus} coins!');
+      },
+      onUnavailable: () => _snack('Ad not available right now'),
+    );
+  }
+
+  /// Rewarded ad that upgrades the level to 3 stars. The stars are only
+  /// changed and persisted after the ad's reward callback confirms completion.
+  void _watchRewardedForStars(int level, VoidCallback onRewarded) {
+    final ads = context.read<AdService>();
+    final player = context.read<PlayerService>();
+    ads.showRewarded(
+      onReward: () {
+        player.setLevelStars(level, 3);
+        context.read<AudioService>().play(Sfx.achievement);
+        onRewarded();
       },
       onUnavailable: () => _snack('Ad not available right now'),
     );

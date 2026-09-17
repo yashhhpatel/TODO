@@ -15,6 +15,10 @@ class LevelCompleteSheet extends StatefulWidget {
   final bool canWatchAd;
   final int adBonus;
   final VoidCallback onWatchAd;
+
+  /// Shows a rewarded ad; the passed callback fires only after the ad is
+  /// completed successfully, at which point the result becomes 3 stars.
+  final void Function(VoidCallback onRewarded) onWatchAdForStars;
   final VoidCallback onNext;
   final VoidCallback onHome;
 
@@ -30,6 +34,7 @@ class LevelCompleteSheet extends StatefulWidget {
     required this.canWatchAd,
     required this.adBonus,
     required this.onWatchAd,
+    required this.onWatchAdForStars,
     required this.onNext,
     required this.onHome,
   });
@@ -42,10 +47,13 @@ class _LevelCompleteSheetState extends State<LevelCompleteSheet>
     with SingleTickerProviderStateMixin {
   late final AnimationController _c;
   bool _adUsed = false;
+  late int _stars;
+  bool _starsUpgraded = false;
 
   @override
   void initState() {
     super.initState();
+    _stars = widget.stars;
     _c = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 700),
@@ -81,7 +89,7 @@ class _LevelCompleteSheetState extends State<LevelCompleteSheet>
           const SizedBox(height: 20),
           ScaleTransition(
             scale: CurvedAnimation(parent: _c, curve: Curves.easeOutBack),
-            child: StarRow(count: widget.stars, size: 44),
+            child: StarRow(count: _stars, size: 44),
           ),
           const SizedBox(height: 16),
           Text('Level ${widget.level} Complete!', style: AppTheme.number(24)),
@@ -108,6 +116,32 @@ class _LevelCompleteSheetState extends State<LevelCompleteSheet>
             ),
           ),
           const SizedBox(height: 16),
+          if (_stars < 3 && widget.canWatchAd) ...[
+            SecondaryButton(
+              label: 'Watch Ad & Get 3 Stars',
+              icon: Icons.star_rounded,
+              onTap: () {
+                widget.onWatchAdForStars(() {
+                  if (mounted) {
+                    setState(() {
+                      _stars = 3;
+                      _starsUpgraded = true;
+                    });
+                    _c
+                      ..reset()
+                      ..forward();
+                  }
+                });
+              },
+            ),
+            const SizedBox(height: 10),
+          ],
+          if (_starsUpgraded) ...[
+            const Text('Upgraded to 3 stars!',
+                style: TextStyle(
+                    color: AppColors.success, fontWeight: FontWeight.w600)),
+            const SizedBox(height: 10),
+          ],
           if (widget.canWatchAd && !_adUsed) ...[
             SecondaryButton(
               label: 'Watch Ad  +${widget.adBonus} Coins',
