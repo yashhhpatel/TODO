@@ -17,14 +17,14 @@ class AudioService {
   bool _musicStarted = false;
 
   static const Map<Sfx, String> _files = {
-    Sfx.select: 'audio/select.mp3',
-    Sfx.correct: 'audio/correct.mp3',
-    Sfx.wrong: 'audio/wrong.mp3',
-    Sfx.coin: 'audio/coin.mp3',
-    Sfx.hint: 'audio/hint.mp3',
-    Sfx.levelComplete: 'audio/level_complete.mp3',
-    Sfx.achievement: 'audio/achievement.mp3',
-    Sfx.tap: 'audio/tap.mp3',
+    Sfx.select: 'audio/select.wav',
+    Sfx.correct: 'audio/correct.wav',
+    Sfx.wrong: 'audio/wrong.wav',
+    Sfx.coin: 'audio/coin.wav',
+    Sfx.hint: 'audio/hint.wav',
+    Sfx.levelComplete: 'audio/level_complete.wav',
+    Sfx.achievement: 'audio/achievement.wav',
+    Sfx.tap: 'audio/tap.wav',
   };
 
   Future<void> play(Sfx sfx) async {
@@ -32,7 +32,7 @@ class AudioService {
     final path = _files[sfx];
     if (path == null) return;
     try {
-      await _sfxPlayer.stop();
+      // play() restarts from the current source, giving snappy repeated SFX.
       await _sfxPlayer.play(AssetSource(path));
     } catch (e) {
       if (kDebugMode) debugPrint('SFX unavailable ($path): $e');
@@ -43,7 +43,7 @@ class AudioService {
     if (!_settings.music || _musicStarted) return;
     try {
       await _musicPlayer.setReleaseMode(ReleaseMode.loop);
-      await _musicPlayer.play(AssetSource('audio/music.mp3'), volume: 0.5);
+      await _musicPlayer.play(AssetSource('audio/music.wav'), volume: 0.4);
       _musicStarted = true;
     } catch (e) {
       if (kDebugMode) debugPrint('Music unavailable: $e');

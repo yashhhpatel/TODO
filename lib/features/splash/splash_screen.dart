@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/app_config.dart';
 import '../../core/theme.dart';
+import '../../services/audio_service.dart';
+import '../../services/notification_service.dart';
 import '../../services/player_service.dart';
+import '../../services/settings_service.dart';
 
 class SplashScreen extends StatefulWidget {
   final VoidCallback onDone;
@@ -24,9 +27,17 @@ class _SplashScreenState extends State<SplashScreen>
       duration: const Duration(milliseconds: 900),
     )..forward();
 
-    // Register daily activity/streak once at startup.
+    // Register daily activity/streak once at startup, then (re)schedule the
+    // daily reward reminder and start background music.
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<PlayerService>().registerDailyActivity();
+      final player = context.read<PlayerService>();
+      final settings = context.read<SettingsService>();
+      player.registerDailyActivity();
+      context.read<NotificationService>().scheduleDailyReminder(
+            enabled: settings.notifications,
+            claimedToday: !player.canClaimDailyReward,
+          );
+      context.read<AudioService>().startMusic();
     });
 
     Future.delayed(const Duration(milliseconds: 1500), () {

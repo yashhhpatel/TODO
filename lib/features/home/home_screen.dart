@@ -18,27 +18,23 @@ class _MenuEntry {
   final IconData icon;
   final String label;
   final WidgetBuilder builder;
-  final bool showBadge;
-  const _MenuEntry(this.icon, this.label, this.builder, {this.showBadge = false});
+  const _MenuEntry(this.icon, this.label, this.builder);
 }
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
+
+  void _push(BuildContext context, Widget screen) {
+    Navigator.of(context).push(MaterialPageRoute(builder: (_) => screen));
+  }
 
   @override
   Widget build(BuildContext context) {
     final player = context.watch<PlayerService>();
     final current = player.highestUnlocked;
 
-    final entries = <_MenuEntry>[
-      _MenuEntry(Icons.map_rounded, 'Level Map', (_) => const LevelMapScreen()),
-      _MenuEntry(Icons.card_giftcard_rounded, 'Daily Reward',
-          (_) => const DailyRewardScreen(),
-          showBadge: player.canClaimDailyReward),
-      _MenuEntry(Icons.emoji_events_rounded, 'Achievements',
-          (_) => const AchievementsScreen()),
-      _MenuEntry(Icons.insights_rounded, 'Statistics',
-          (_) => const StatisticsScreen()),
+    // Overflow menu keeps the two secondary destinations.
+    final menuEntries = <_MenuEntry>[
       _MenuEntry(Icons.workspace_premium_rounded,
           player.premium ? 'Premium' : 'Remove Ads',
           (_) => const PremiumScreen()),
@@ -69,42 +65,62 @@ class HomeScreen extends StatelessWidget {
                   const Spacer(),
                   CoinPill(coins: player.coins),
                   const SizedBox(width: 10),
-                  _HomeMenuButton(entries: entries),
+                  _HomeMenuButton(entries: menuEntries),
                 ],
               ),
             ),
             Expanded(
               child: Center(
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      _HeroCard(currentLevel: current),
-                      const SizedBox(height: 20),
+                      // Two cards above the Level section.
                       Row(
                         children: [
                           Expanded(
-                            child: _MiniStat(
-                              icon: Icons.local_fire_department_rounded,
-                              label: 'Streak',
-                              value: '${player.currentStreak}d',
+                            child: _HomeCard(
+                              icon: Icons.map_rounded,
+                              label: 'Level Map',
+                              onTap: () =>
+                                  _push(context, const LevelMapScreen()),
                             ),
                           ),
                           const SizedBox(width: 12),
                           Expanded(
-                            child: _MiniStat(
-                              icon: Icons.star_rounded,
-                              label: 'Stars',
-                              value: '${player.starsEarned}',
+                            child: _HomeCard(
+                              icon: Icons.card_giftcard_rounded,
+                              label: 'Daily Reward',
+                              highlight: player.canClaimDailyReward,
+                              onTap: () =>
+                                  _push(context, const DailyRewardScreen()),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      // Centered Level section.
+                      _HeroCard(currentLevel: current),
+                      const SizedBox(height: 16),
+                      // Two cards below the Level section.
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _HomeCard(
+                              icon: Icons.emoji_events_rounded,
+                              label: 'Achievements',
+                              onTap: () =>
+                                  _push(context, const AchievementsScreen()),
                             ),
                           ),
                           const SizedBox(width: 12),
                           Expanded(
-                            child: _MiniStat(
-                              icon: Icons.check_circle_rounded,
-                              label: 'Done',
-                              value: '${player.levelsCompleted}',
+                            child: _HomeCard(
+                              icon: Icons.insights_rounded,
+                              label: 'Statistics',
+                              onTap: () =>
+                                  _push(context, const StatisticsScreen()),
                             ),
                           ),
                         ],
@@ -122,15 +138,60 @@ class HomeScreen extends StatelessWidget {
   }
 }
 
-/// Dropdown menu (anchored beside the coin balance) holding all destinations
-/// that used to be tiles on the home grid.
+class _HomeCard extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  final bool highlight;
+  const _HomeCard({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    this.highlight = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SoftCard(
+      onTap: onTap,
+      padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 16),
+      child: Row(
+        children: [
+          Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Icon(icon, color: AppColors.ink, size: 24),
+              if (highlight)
+                Positioned(
+                  right: -4,
+                  top: -4,
+                  child: Container(
+                    width: 10,
+                    height: 10,
+                    decoration: const BoxDecoration(
+                        color: AppColors.danger, shape: BoxShape.circle),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(label,
+                style:
+                    const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _HomeMenuButton extends StatelessWidget {
   final List<_MenuEntry> entries;
   const _HomeMenuButton({required this.entries});
 
   @override
   Widget build(BuildContext context) {
-    final anyBadge = entries.any((e) => e.showBadge);
     return PopupMenuButton<int>(
       tooltip: 'Menu',
       position: PopupMenuPosition.under,
@@ -151,52 +212,22 @@ class _HomeMenuButton extends StatelessWidget {
               children: [
                 Icon(entries[i].icon, color: AppColors.ink, size: 22),
                 const SizedBox(width: 14),
-                Text(
-                  entries[i].label,
-                  style: const TextStyle(
-                      fontWeight: FontWeight.w600, fontSize: 15),
-                ),
-                if (entries[i].showBadge) ...[
-                  const SizedBox(width: 8),
-                  Container(
-                    width: 8,
-                    height: 8,
-                    decoration: const BoxDecoration(
-                        color: AppColors.danger, shape: BoxShape.circle),
-                  ),
-                ],
+                Text(entries[i].label,
+                    style: const TextStyle(
+                        fontWeight: FontWeight.w600, fontSize: 15)),
               ],
             ),
           ),
       ],
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: AppColors.grey100,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: AppColors.grey200),
-            ),
-            child: const Icon(Icons.menu_rounded, color: AppColors.ink),
-          ),
-          if (anyBadge)
-            Positioned(
-              right: -2,
-              top: -2,
-              child: Container(
-                width: 12,
-                height: 12,
-                decoration: BoxDecoration(
-                  color: AppColors.danger,
-                  shape: BoxShape.circle,
-                  border: Border.all(color: AppColors.bg, width: 2),
-                ),
-              ),
-            ),
-        ],
+      child: Container(
+        width: 44,
+        height: 44,
+        decoration: BoxDecoration(
+          color: AppColors.grey100,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: AppColors.grey200),
+        ),
+        child: const Icon(Icons.menu_rounded, color: AppColors.ink),
       ),
     );
   }
@@ -234,30 +265,6 @@ class _HeroCard extends StatelessWidget {
             large: true,
             onTap: () => GameplayScreen.open(context, currentLevel),
           ),
-        ],
-      ),
-    );
-  }
-}
-
-class _MiniStat extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final String value;
-  const _MiniStat(
-      {required this.icon, required this.label, required this.value});
-
-  @override
-  Widget build(BuildContext context) {
-    return SoftCard(
-      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
-      child: Column(
-        children: [
-          Icon(icon, color: AppColors.ink, size: 22),
-          const SizedBox(height: 6),
-          Text(value, style: AppTheme.number(18)),
-          Text(label,
-              style: const TextStyle(color: AppColors.grey500, fontSize: 11)),
         ],
       ),
     );

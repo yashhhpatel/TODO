@@ -9,6 +9,7 @@ import 'services/ad_service.dart';
 import 'services/audio_service.dart';
 import 'services/connectivity_service.dart';
 import 'services/haptic_service.dart';
+import 'services/notification_service.dart';
 import 'services/player_service.dart';
 import 'services/purchase_service.dart';
 import 'services/settings_service.dart';
@@ -29,12 +30,14 @@ Future<void> main() async {
   final haptics = HapticService(settings);
   final ads = AdService();
   final purchases = PurchaseService(player);
+  final notifications = NotificationService();
   final generator = LevelGenerator(WordBank.instance);
 
   // Fire-and-forget async init; the UI never blocks on these.
   connectivity.init();
   ads.init();
   purchases.init();
+  notifications.init();
 
   runApp(
     MultiProvider(
@@ -44,6 +47,7 @@ Future<void> main() async {
         Provider<AudioService>.value(value: audio),
         Provider<HapticService>.value(value: haptics),
         Provider<AdService>.value(value: ads),
+        Provider<NotificationService>.value(value: notifications),
         ChangeNotifierProvider<SettingsService>.value(value: settings),
         ChangeNotifierProvider<PlayerService>.value(value: player),
         ChangeNotifierProvider<ConnectivityService>.value(value: connectivity),

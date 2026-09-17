@@ -45,5 +45,9 @@ class AppConfig {
   // ---- Legal / contact placeholders ----
   static const String privacyPolicyUrl = 'https://example.com/privacy';
   static const String termsUrl = 'https://example.com/terms';
-  static const String contactEmail = 'support@example.com';
+  static const String contactEmail = 'aakashmangukiya10@gmail.com';
+
+  // ---- Notifications ----
+  static const int dailyReminderHour = 19; // 7 PM local
+  static const int dailyReminderMinute = 0;
 }

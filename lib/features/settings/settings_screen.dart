@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../core/app_config.dart';
 import '../../core/theme.dart';
 import '../../services/audio_service.dart';
+import '../../services/notification_service.dart';
 import '../../services/player_service.dart';
 import '../../services/purchase_service.dart';
 import '../../services/settings_service.dart';
@@ -41,7 +43,13 @@ class SettingsScreen extends StatelessWidget {
                     settings.vibration, (v) => settings.vibration = v),
                 _divider(),
                 _switchTile('Notifications', Icons.notifications_rounded,
-                    settings.notifications, (v) => settings.notifications = v),
+                    settings.notifications, (v) {
+                  settings.notifications = v;
+                  context.read<NotificationService>().scheduleDailyReminder(
+                        enabled: v,
+                        claimedToday: !player.canClaimDailyReward,
+                      );
+                }),
               ],
             ),
           ),
@@ -91,13 +99,14 @@ class SettingsScreen extends StatelessWidget {
                 _divider(),
                 _actionTile('Share App', Icons.share_rounded, () => _todo(context)),
                 _divider(),
-                _actionTile('Contact Us', Icons.mail_rounded, () => _todo(context)),
+                _actionTile('Contact Us', Icons.mail_rounded,
+                    () => _contactUs(context)),
                 _divider(),
                 _actionTile('Privacy Policy', Icons.privacy_tip_rounded,
-                    () => _todo(context)),
+                    () => _openUrl(context, AppConfig.privacyPolicyUrl)),
                 _divider(),
                 _actionTile('Terms of Service', Icons.description_rounded,
-                    () => _todo(context)),
+                    () => _openUrl(context, AppConfig.termsUrl)),
               ],
             ),
           ),
@@ -116,6 +125,41 @@ class SettingsScreen extends StatelessWidget {
       content: Text('Link to be configured before release'),
       duration: Duration(seconds: 2),
     ));
+  }
+
+  Future<void> _contactUs(BuildContext context) async {
+    final uri = Uri(
+      scheme: 'mailto',
+      path: AppConfig.contactEmail,
+      query: 'subject=${Uri.encodeComponent('${AppConfig.appName} Support')}',
+    );
+    final launched =
+        await launchUrl(uri, mode: LaunchMode.externalApplication)
+            .catchError((_) => false);
+    if (!launched && context.mounted) {
+      showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: const Text('Contact Us'),
+          content: const SelectableText(AppConfig.contactEmail),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Close'),
+            ),
+          ],
+        ),
+      );
+    }
+  }
+
+  Future<void> _openUrl(BuildContext context, String url) async {
+    final ok = await launchUrl(Uri.parse(url),
+            mode: LaunchMode.externalApplication)
+        .catchError((_) => false);
+    if (!ok && context.mounted) _todo(context);
   }
 
   Widget _sectionLabel(String text) => Padding(
