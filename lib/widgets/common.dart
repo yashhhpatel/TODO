@@ -1,0 +1,208 @@
+import 'package:flutter/material.dart';
+import '../core/theme.dart';
+
+/// Primary filled (black) button.
+class PrimaryButton extends StatelessWidget {
+  final String label;
+  final VoidCallback? onTap;
+  final IconData? icon;
+  final Color? color;
+  final bool expand;
+
+  const PrimaryButton({
+    super.key,
+    required this.label,
+    required this.onTap,
+    this.icon,
+    this.color,
+    this.expand = true,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final btn = Material(
+      color: onTap == null ? AppColors.grey300 : (color ?? AppColors.ink),
+      borderRadius: BorderRadius.circular(AppRadii.md),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(AppRadii.md),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 22),
+          child: Row(
+            mainAxisSize: expand ? MainAxisSize.max : MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              if (icon != null) ...[
+                Icon(icon, color: Colors.white, size: 20),
+                const SizedBox(width: 10),
+              ],
+              Text(
+                label,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 16,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    return btn;
+  }
+}
+
+/// Secondary outlined button.
+class SecondaryButton extends StatelessWidget {
+  final String label;
+  final VoidCallback? onTap;
+  final IconData? icon;
+  const SecondaryButton({
+    super.key,
+    required this.label,
+    required this.onTap,
+    this.icon,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppRadii.md),
+        side: const BorderSide(color: AppColors.grey300, width: 1.5),
+      ),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(AppRadii.md),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 22),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              if (icon != null) ...[
+                Icon(icon, color: AppColors.ink, size: 20),
+                const SizedBox(width: 10),
+              ],
+              Text(
+                label,
+                style: const TextStyle(
+                  color: AppColors.ink,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 16,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Rounded white card with subtle shadow.
+class SoftCard extends StatelessWidget {
+  final Widget child;
+  final EdgeInsetsGeometry? padding;
+  final VoidCallback? onTap;
+  const SoftCard({super.key, required this.child, this.padding, this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: AppColors.card,
+      borderRadius: BorderRadius.circular(AppRadii.lg),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(AppRadii.lg),
+        onTap: onTap,
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(AppRadii.lg),
+            border: Border.all(color: AppColors.grey200),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.04),
+                blurRadius: 16,
+                offset: const Offset(0, 6),
+              ),
+            ],
+          ),
+          padding: padding ?? const EdgeInsets.all(18),
+          child: child,
+        ),
+      ),
+    );
+  }
+}
+
+/// Coin balance pill.
+class CoinPill extends StatelessWidget {
+  final int coins;
+  const CoinPill({super.key, required this.coins});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      decoration: BoxDecoration(
+        color: AppColors.ink,
+        borderRadius: BorderRadius.circular(AppRadii.pill),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.monetization_on_rounded,
+              color: AppColors.coin, size: 20),
+          const SizedBox(width: 6),
+          Text(
+            '$coins',
+            style: AppTheme.number(16, color: Colors.white),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Row of 1..3 stars (filled up to [count]).
+class StarRow extends StatelessWidget {
+  final int count;
+  final double size;
+  const StarRow({super.key, required this.count, this.size = 20});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: List.generate(3, (i) {
+        final on = i < count;
+        return Icon(
+          on ? Icons.star_rounded : Icons.star_outline_rounded,
+          color: on ? AppColors.star : AppColors.grey300,
+          size: size,
+        );
+      }),
+    );
+  }
+}
+
+class ScreenScaffold extends StatelessWidget {
+  final String title;
+  final Widget body;
+  final List<Widget>? actions;
+  const ScreenScaffold({
+    super.key,
+    required this.title,
+    required this.body,
+    this.actions,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text(title), actions: actions),
+      body: SafeArea(child: body),
+    );
+  }
+}
