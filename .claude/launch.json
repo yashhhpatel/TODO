@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "word_finder (android)",
+      "runtimeExecutable": "flutter",
+      "runtimeArgs": ["run", "-d", "emulator-5554"],
+      "port": 0
+    }
+  ]
+}
