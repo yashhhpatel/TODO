@@ -103,7 +103,36 @@ class HomeScreen extends StatelessWidget {
                       // Centered Level section.
                       _HeroCard(currentLevel: current),
                       const SizedBox(height: 16),
-                      // Two cards below the Level section.
+                      // Streak / Stars / Done — directly below the Level section.
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _MiniStat(
+                              icon: Icons.local_fire_department_rounded,
+                              label: 'Streak',
+                              value: '${player.currentStreak}d',
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: _MiniStat(
+                              icon: Icons.star_rounded,
+                              label: 'Stars',
+                              value: '${player.starsEarned}',
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: _MiniStat(
+                              icon: Icons.check_circle_rounded,
+                              label: 'Done',
+                              value: '${player.levelsCompleted}',
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      // Two cards below.
                       Row(
                         children: [
                           Expanded(
@@ -154,32 +183,67 @@ class _HomeCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return SoftCard(
       onTap: onTap,
-      padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 16),
-      child: Row(
+      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 12),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
           Stack(
             clipBehavior: Clip.none,
             children: [
-              Icon(icon, color: AppColors.ink, size: 24),
+              Container(
+                width: 52,
+                height: 52,
+                decoration: BoxDecoration(
+                  color: AppColors.grey100,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Icon(icon, color: AppColors.ink, size: 26),
+              ),
               if (highlight)
                 Positioned(
-                  right: -4,
-                  top: -4,
+                  right: -3,
+                  top: -3,
                   child: Container(
-                    width: 10,
-                    height: 10,
-                    decoration: const BoxDecoration(
-                        color: AppColors.danger, shape: BoxShape.circle),
+                    width: 12,
+                    height: 12,
+                    decoration: BoxDecoration(
+                      color: AppColors.danger,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: AppColors.card, width: 2),
+                    ),
                   ),
                 ),
             ],
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(label,
-                style:
-                    const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
-          ),
+          const SizedBox(height: 12),
+          Text(label,
+              textAlign: TextAlign.center,
+              style:
+                  const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+        ],
+      ),
+    );
+  }
+}
+
+class _MiniStat extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String value;
+  const _MiniStat(
+      {required this.icon, required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    return SoftCard(
+      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
+      child: Column(
+        children: [
+          Icon(icon, color: AppColors.ink, size: 22),
+          const SizedBox(height: 6),
+          Text(value, style: AppTheme.number(18)),
+          Text(label,
+              style: const TextStyle(color: AppColors.grey500, fontSize: 11)),
         ],
       ),
     );
