@@ -14,6 +14,14 @@ import '../premium/premium_screen.dart';
 import '../settings/settings_screen.dart';
 import '../statistics/statistics_screen.dart';
 
+class _MenuEntry {
+  final IconData icon;
+  final String label;
+  final WidgetBuilder builder;
+  final bool showBadge;
+  const _MenuEntry(this.icon, this.label, this.builder, {this.showBadge = false});
+}
+
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
@@ -21,6 +29,22 @@ class HomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final player = context.watch<PlayerService>();
     final current = player.highestUnlocked;
+
+    final entries = <_MenuEntry>[
+      _MenuEntry(Icons.map_rounded, 'Level Map', (_) => const LevelMapScreen()),
+      _MenuEntry(Icons.card_giftcard_rounded, 'Daily Reward',
+          (_) => const DailyRewardScreen(),
+          showBadge: player.canClaimDailyReward),
+      _MenuEntry(Icons.emoji_events_rounded, 'Achievements',
+          (_) => const AchievementsScreen()),
+      _MenuEntry(Icons.insights_rounded, 'Statistics',
+          (_) => const StatisticsScreen()),
+      _MenuEntry(Icons.workspace_premium_rounded,
+          player.premium ? 'Premium' : 'Remove Ads',
+          (_) => const PremiumScreen()),
+      _MenuEntry(Icons.settings_rounded, 'Settings',
+          (_) => const SettingsScreen()),
+    ];
 
     return Scaffold(
       body: SafeArea(
@@ -30,103 +54,64 @@ class HomeScreen extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
               child: Row(
                 children: [
-                  Row(
-                    children: [
-                      Container(
-                        width: 38,
-                        height: 38,
-                        decoration: BoxDecoration(
-                          color: AppColors.ink,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: const Icon(Icons.grid_view_rounded,
-                            color: Colors.white, size: 20),
-                      ),
-                      const SizedBox(width: 10),
-                      Text(AppConfig.appName, style: AppTheme.number(20)),
-                    ],
+                  Container(
+                    width: 38,
+                    height: 38,
+                    decoration: BoxDecoration(
+                      color: AppColors.ink,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(Icons.grid_view_rounded,
+                        color: Colors.white, size: 20),
                   ),
+                  const SizedBox(width: 10),
+                  Text(AppConfig.appName, style: AppTheme.number(20)),
                   const Spacer(),
                   CoinPill(coins: player.coins),
+                  const SizedBox(width: 10),
+                  _HomeMenuButton(entries: entries),
                 ],
               ),
             ),
             Expanded(
-              child: ListView(
-                padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
-                children: [
-                  _HeroCard(currentLevel: current),
-                  const SizedBox(height: 16),
-                  Row(
+              child: Center(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      Expanded(
-                        child: _MiniStat(
-                          icon: Icons.local_fire_department_rounded,
-                          label: 'Streak',
-                          value: '${player.currentStreak}d',
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _MiniStat(
-                          icon: Icons.star_rounded,
-                          label: 'Stars',
-                          value: '${player.starsEarned}',
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _MiniStat(
-                          icon: Icons.check_circle_rounded,
-                          label: 'Done',
-                          value: '${player.levelsCompleted}',
-                        ),
+                      _HeroCard(currentLevel: current),
+                      const SizedBox(height: 20),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _MiniStat(
+                              icon: Icons.local_fire_department_rounded,
+                              label: 'Streak',
+                              value: '${player.currentStreak}d',
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: _MiniStat(
+                              icon: Icons.star_rounded,
+                              label: 'Stars',
+                              value: '${player.starsEarned}',
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: _MiniStat(
+                              icon: Icons.check_circle_rounded,
+                              label: 'Done',
+                              value: '${player.levelsCompleted}',
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
-                  const SizedBox(height: 20),
-                  GridView.count(
-                    crossAxisCount: 2,
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    mainAxisSpacing: 12,
-                    crossAxisSpacing: 12,
-                    childAspectRatio: 1.5,
-                    children: [
-                      _MenuTile(
-                        icon: Icons.map_rounded,
-                        label: 'Level Map',
-                        onTap: () => _push(context, const LevelMapScreen()),
-                      ),
-                      _MenuTile(
-                        icon: Icons.card_giftcard_rounded,
-                        label: 'Daily Reward',
-                        highlight: player.canClaimDailyReward,
-                        onTap: () => _push(context, const DailyRewardScreen()),
-                      ),
-                      _MenuTile(
-                        icon: Icons.emoji_events_rounded,
-                        label: 'Achievements',
-                        onTap: () => _push(context, const AchievementsScreen()),
-                      ),
-                      _MenuTile(
-                        icon: Icons.insights_rounded,
-                        label: 'Statistics',
-                        onTap: () => _push(context, const StatisticsScreen()),
-                      ),
-                      _MenuTile(
-                        icon: Icons.workspace_premium_rounded,
-                        label: player.premium ? 'Premium ✓' : 'Remove Ads',
-                        onTap: () => _push(context, const PremiumScreen()),
-                      ),
-                      _MenuTile(
-                        icon: Icons.settings_rounded,
-                        label: 'Settings',
-                        onTap: () => _push(context, const SettingsScreen()),
-                      ),
-                    ],
-                  ),
-                ],
+                ),
               ),
             ),
             const BannerAdSlot(),
@@ -135,9 +120,85 @@ class HomeScreen extends StatelessWidget {
       ),
     );
   }
+}
 
-  void _push(BuildContext context, Widget screen) {
-    Navigator.of(context).push(MaterialPageRoute(builder: (_) => screen));
+/// Dropdown menu (anchored beside the coin balance) holding all destinations
+/// that used to be tiles on the home grid.
+class _HomeMenuButton extends StatelessWidget {
+  final List<_MenuEntry> entries;
+  const _HomeMenuButton({required this.entries});
+
+  @override
+  Widget build(BuildContext context) {
+    final anyBadge = entries.any((e) => e.showBadge);
+    return PopupMenuButton<int>(
+      tooltip: 'Menu',
+      position: PopupMenuPosition.under,
+      offset: const Offset(0, 8),
+      color: AppColors.card,
+      elevation: 8,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppRadii.md),
+        side: const BorderSide(color: AppColors.grey200),
+      ),
+      onSelected: (i) => Navigator.of(context)
+          .push(MaterialPageRoute(builder: entries[i].builder)),
+      itemBuilder: (context) => [
+        for (int i = 0; i < entries.length; i++)
+          PopupMenuItem<int>(
+            value: i,
+            child: Row(
+              children: [
+                Icon(entries[i].icon, color: AppColors.ink, size: 22),
+                const SizedBox(width: 14),
+                Text(
+                  entries[i].label,
+                  style: const TextStyle(
+                      fontWeight: FontWeight.w600, fontSize: 15),
+                ),
+                if (entries[i].showBadge) ...[
+                  const SizedBox(width: 8),
+                  Container(
+                    width: 8,
+                    height: 8,
+                    decoration: const BoxDecoration(
+                        color: AppColors.danger, shape: BoxShape.circle),
+                  ),
+                ],
+              ],
+            ),
+          ),
+      ],
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: AppColors.grey100,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: AppColors.grey200),
+            ),
+            child: const Icon(Icons.menu_rounded, color: AppColors.ink),
+          ),
+          if (anyBadge)
+            Positioned(
+              right: -2,
+              top: -2,
+              child: Container(
+                width: 12,
+                height: 12,
+                decoration: BoxDecoration(
+                  color: AppColors.danger,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: AppColors.bg, width: 2),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
   }
 }
 
@@ -200,54 +261,6 @@ class _MiniStat extends StatelessWidget {
           Text(value, style: AppTheme.number(18)),
           Text(label,
               style: const TextStyle(color: AppColors.grey500, fontSize: 11)),
-        ],
-      ),
-    );
-  }
-}
-
-class _MenuTile extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-  final bool highlight;
-  const _MenuTile({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-    this.highlight = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return SoftCard(
-      onTap: onTap,
-      padding: const EdgeInsets.all(16),
-      child: Row(
-        children: [
-          Stack(
-            clipBehavior: Clip.none,
-            children: [
-              Icon(icon, color: AppColors.ink, size: 26),
-              if (highlight)
-                Positioned(
-                  right: -4,
-                  top: -4,
-                  child: Container(
-                    width: 10,
-                    height: 10,
-                    decoration: const BoxDecoration(
-                        color: AppColors.danger, shape: BoxShape.circle),
-                  ),
-                ),
-            ],
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(label,
-                style: const TextStyle(
-                    fontWeight: FontWeight.w600, fontSize: 14)),
-          ),
         ],
       ),
     );
