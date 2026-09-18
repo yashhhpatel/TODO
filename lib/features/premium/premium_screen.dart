@@ -42,7 +42,8 @@ class PremiumScreen extends StatelessWidget {
             const SizedBox(height: 8),
             const Center(
               child: Text(
-                'A one-time purchase removes all banner and interstitial ads forever.',
+                'A one-time purchase (not a subscription) that gives you '
+                'lifetime ad-free access.',
                 textAlign: TextAlign.center,
                 style: TextStyle(color: AppColors.grey700, height: 1.5),
               ),
@@ -80,8 +81,8 @@ class PremiumScreen extends StatelessWidget {
                 label: purchases.purchaseInProgress
                     ? 'Processing…'
                     : purchases.removeAdsProduct != null
-                        ? 'Remove Ads  ${purchases.priceLabel}'
-                        : 'Remove Ads',
+                        ? 'Get Lifetime Ad-Free  ${purchases.priceLabel}'
+                        : 'Get Lifetime Ad-Free',
                 icon: Icons.lock_open_rounded,
                 onTap: (purchases.removeAdsProduct == null ||
                         purchases.purchaseInProgress)

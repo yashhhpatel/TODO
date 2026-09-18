@@ -31,8 +31,10 @@ class AppConfig {
   static const int minSecondsBetweenFullScreenAds = 45;
 
   // ---- Monetization: Google Play Billing ----
-  // NOTE: not yet created in Play Console; configurable placeholder id.
-  static const String removeAdsProductId = 'remove_ads';
+  // One-time (non-consumable) managed product for lifetime ad removal.
+  // Create this exact product id in the Play Console as a ONE-TIME product
+  // (not a subscription) priced at ₹2,999.
+  static const String removeAdsProductId = 'remove_ads_lifetime';
 
   // ---- Rewards ----
   static const int rewardedAdCoins = 100;
@@ -42,9 +44,9 @@ class AppConfig {
   static const int letterHintCost = 25;
   static const int wordHintCost = 50;
 
-  // ---- Legal / contact placeholders ----
-  static const String privacyPolicyUrl = 'https://example.com/privacy';
-  static const String termsUrl = 'https://example.com/terms';
+  // ---- Legal / contact ----
+  static const String privacyPolicyUrl =
+      'https://api.buildprivacypolicy.com/policy/d49b200f-ad89-411a-ac49-1b8d9d3aada0';
   static const String contactEmail = 'aakashmangukiya10@gmail.com';
 
   // Android application id — used for the Play Store / Rate Us link.
