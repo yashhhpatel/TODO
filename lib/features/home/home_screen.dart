@@ -10,16 +10,8 @@ import '../achievements/achievements_screen.dart';
 import '../daily_reward/daily_reward_screen.dart';
 import '../gameplay/gameplay_screen.dart';
 import '../level_map/level_map_screen.dart';
-import '../premium/premium_screen.dart';
 import '../settings/settings_screen.dart';
 import '../statistics/statistics_screen.dart';
-
-class _MenuEntry {
-  final IconData icon;
-  final String label;
-  final WidgetBuilder builder;
-  const _MenuEntry(this.icon, this.label, this.builder);
-}
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -32,15 +24,6 @@ class HomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final player = context.watch<PlayerService>();
     final current = player.highestUnlocked;
-
-    // Overflow menu keeps the two secondary destinations.
-    final menuEntries = <_MenuEntry>[
-      _MenuEntry(Icons.workspace_premium_rounded,
-          player.premium ? 'Premium' : 'Remove Ads',
-          (_) => const PremiumScreen()),
-      _MenuEntry(Icons.settings_rounded, 'Settings',
-          (_) => const SettingsScreen()),
-    ];
 
     return Scaffold(
       body: SafeArea(
@@ -65,7 +48,7 @@ class HomeScreen extends StatelessWidget {
                   const Spacer(),
                   CoinPill(coins: player.coins),
                   const SizedBox(width: 10),
-                  _HomeMenuButton(entries: menuEntries),
+                  _SettingsButton(onTap: () => _push(context, const SettingsScreen())),
                 ],
               ),
             ),
@@ -250,48 +233,27 @@ class _MiniStat extends StatelessWidget {
   }
 }
 
-class _HomeMenuButton extends StatelessWidget {
-  final List<_MenuEntry> entries;
-  const _HomeMenuButton({required this.entries});
+class _SettingsButton extends StatelessWidget {
+  final VoidCallback onTap;
+  const _SettingsButton({required this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    return PopupMenuButton<int>(
-      tooltip: 'Menu',
-      position: PopupMenuPosition.under,
-      offset: const Offset(0, 8),
-      color: AppColors.card,
-      elevation: 8,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(AppRadii.md),
-        side: const BorderSide(color: AppColors.grey200),
-      ),
-      onSelected: (i) => Navigator.of(context)
-          .push(MaterialPageRoute(builder: entries[i].builder)),
-      itemBuilder: (context) => [
-        for (int i = 0; i < entries.length; i++)
-          PopupMenuItem<int>(
-            value: i,
-            child: Row(
-              children: [
-                Icon(entries[i].icon, color: AppColors.ink, size: 22),
-                const SizedBox(width: 14),
-                Text(entries[i].label,
-                    style: const TextStyle(
-                        fontWeight: FontWeight.w600, fontSize: 15)),
-              ],
-            ),
+    return Material(
+      color: AppColors.grey100,
+      borderRadius: BorderRadius.circular(14),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(14),
+        onTap: onTap,
+        child: Container(
+          width: 44,
+          height: 44,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: AppColors.grey200),
           ),
-      ],
-      child: Container(
-        width: 44,
-        height: 44,
-        decoration: BoxDecoration(
-          color: AppColors.grey100,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: AppColors.grey200),
+          child: const Icon(Icons.settings_rounded, color: AppColors.ink),
         ),
-        child: const Icon(Icons.menu_rounded, color: AppColors.ink),
       ),
     );
   }

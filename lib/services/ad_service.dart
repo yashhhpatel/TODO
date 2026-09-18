@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import '../core/app_config.dart';
@@ -63,10 +64,14 @@ class AdService {
 
   /// Shows an interstitial after every N completed levels for non-premium users.
   /// Never called during active gameplay by design.
-  void maybeShowInterstitial({
+  ///
+  /// Returns a Future that completes only once the ad is dismissed (or
+  /// immediately when no ad is shown). Callers should await this before
+  /// navigating to the next level so the level timer never runs during the ad.
+  Future<void> maybeShowInterstitial({
     required int completedLevel,
     required bool premium,
-  }) {
+  }) async {
     if (premium || !_initialized) return;
     if (completedLevel % AppConfig.interstitialEveryLevels != 0) return;
     if (!_fullScreenCooldownOk) return;
@@ -75,21 +80,31 @@ class AdService {
       loadInterstitial();
       return;
     }
+    final completer = Completer<void>();
+    void finish() {
+      if (!completer.isCompleted) completer.complete();
+    }
+
     ad.fullScreenContentCallback = FullScreenContentCallback(
       onAdDismissedFullScreenContent: (ad) {
         ad.dispose();
         _interstitial = null;
         loadInterstitial();
+        finish();
       },
       onAdFailedToShowFullScreenContent: (ad, err) {
         ad.dispose();
         _interstitial = null;
         loadInterstitial();
+        finish();
       },
     );
     _lastFullScreenAd = DateTime.now();
     ad.show();
     _interstitial = null;
+    // Safety net in case a dismiss callback never arrives.
+    return completer.future.timeout(const Duration(seconds: 120),
+        onTimeout: () {});
   }
 
   // ---- Rewarded ----

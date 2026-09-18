@@ -119,10 +119,13 @@ class _GameplayScreenState extends State<GameplayScreen> {
       await _showAchievement(a);
     }
     // Interstitial only happens here — between levels, never during play.
-    ads.maybeShowInterstitial(
+    // Await its dismissal so the NEXT level's timer only starts once the ad
+    // is gone and the gameplay screen is actually shown.
+    await ads.maybeShowInterstitial(
       completedLevel: level.levelNumber,
       premium: player.premium,
     );
+    if (!mounted) return;
     if (action == 'home') {
       _returnHome();
     } else {
