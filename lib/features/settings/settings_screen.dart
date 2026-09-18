@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../core/app_config.dart';
 import '../../core/theme.dart';
@@ -95,9 +96,11 @@ class SettingsScreen extends StatelessWidget {
             padding: EdgeInsets.zero,
             child: Column(
               children: [
-                _actionTile('Rate Us', Icons.star_rounded, () => _todo(context)),
+                _actionTile('Rate Us', Icons.star_rounded,
+                    () => _openUrl(context, AppConfig.playStoreUrl)),
                 _divider(),
-                _actionTile('Share App', Icons.share_rounded, () => _todo(context)),
+                _actionTile('Share App', Icons.share_rounded,
+                    () => _shareApp(context)),
                 _divider(),
                 _actionTile('Contact Us', Icons.mail_rounded,
                     () => _contactUs(context)),
@@ -160,6 +163,14 @@ class SettingsScreen extends StatelessWidget {
             mode: LaunchMode.externalApplication)
         .catchError((_) => false);
     if (!ok && context.mounted) _todo(context);
+  }
+
+  Future<void> _shareApp(BuildContext context) async {
+    try {
+      await Share.share(AppConfig.shareMessage);
+    } catch (_) {
+      if (context.mounted) _todo(context);
+    }
   }
 
   Widget _sectionLabel(String text) => Padding(

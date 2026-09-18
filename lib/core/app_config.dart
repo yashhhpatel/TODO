@@ -47,6 +47,13 @@ class AppConfig {
   static const String termsUrl = 'https://example.com/terms';
   static const String contactEmail = 'aakashmangukiya10@gmail.com';
 
+  // Android application id — used for the Play Store / Rate Us link.
+  static const String androidPackageId = 'com.wordforge.word_finder';
+  static String get playStoreUrl =>
+      'https://play.google.com/store/apps/details?id=$androidPackageId';
+  static String get shareMessage =>
+      'Play $appName — find the hidden words! $playStoreUrl';
+
   // ---- Notifications ----
   static const int dailyReminderHour = 19; // 7 PM local
   static const int dailyReminderMinute = 0;

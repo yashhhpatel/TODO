@@ -62,30 +62,10 @@ class Difficulty {
     return 5;
   }
 
-  static List<WordDirection> _directions(int tier) {
-    switch (tier) {
-      case 1:
-        return const [WordDirection.right, WordDirection.down];
-      case 2:
-        return const [
-          WordDirection.right,
-          WordDirection.down,
-          WordDirection.left,
-          WordDirection.up,
-        ];
-      case 3:
-        return const [
-          WordDirection.right,
-          WordDirection.down,
-          WordDirection.left,
-          WordDirection.up,
-          WordDirection.downRight,
-          WordDirection.upLeft,
-        ];
-      default:
-        return WordDirection.values; // all 8
-    }
-  }
+  /// All 8 directions (horizontal, vertical and both diagonals, each way) are
+  /// available on every level so words can be generated — and found — in any
+  /// direction. Difficulty still ramps via grid size, word length and count.
+  static List<WordDirection> _directions() => WordDirection.values;
 
   static DifficultyProfile forLevel(int level) {
     final gl = _gridAndLength(level);
@@ -95,7 +75,7 @@ class Difficulty {
       wordCount: _wordCount(level, gl.grid),
       wordLength: gl.len,
       tier: tier,
-      directions: _directions(tier),
+      directions: _directions(),
     );
   }
 }

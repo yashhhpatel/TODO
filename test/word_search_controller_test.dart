@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:word_finder/game/level_generator.dart';
 import 'package:word_finder/game/word_search_controller.dart';
 import 'package:word_finder/game/word_bank.dart';
+import 'package:word_finder/models/word_placement.dart';
 
 WordBank _bank() {
   final b = WordBank.instance;
@@ -17,6 +18,55 @@ WordBank _bank() {
 
 void main() {
   final gen = LevelGenerator(_bank());
+
+  const diagonals = {
+    WordDirection.downRight,
+    WordDirection.upLeft,
+    WordDirection.downLeft,
+    WordDirection.upRight,
+  };
+
+  test('diagonal words are generated across levels', () {
+    var diagonalCount = 0;
+    for (int level = 1; level <= 30; level++) {
+      final def = gen.generate(level);
+      diagonalCount +=
+          def.placements.where((p) => diagonals.contains(p.direction)).length;
+    }
+    expect(diagonalCount, greaterThan(0),
+        reason: 'diagonally-placed words should appear');
+  });
+
+  test('a diagonal word can be selected from both ends', () {
+    // Find a level that contains a diagonal placement.
+    WordPlacement? diag;
+    for (int level = 1; level <= 60 && diag == null; level++) {
+      final def = gen.generate(level);
+      for (final p in def.placements) {
+        if (diagonals.contains(p.direction)) {
+          final c = WordSearchController(level: def);
+          // forward
+          c.beginAt(p.cells.first);
+          c.extendTo(p.cells.last);
+          c.endSelection();
+          expect(c.isWordFound(p.word), isTrue,
+              reason: 'diagonal ${p.word} forward');
+          // reverse
+          final c2 = WordSearchController(level: def);
+          c2.beginAt(p.cells.last);
+          c2.extendTo(p.cells.first);
+          c2.endSelection();
+          expect(c2.isWordFound(p.word), isTrue,
+              reason: 'diagonal ${p.word} reverse');
+          c.dispose();
+          c2.dispose();
+          diag = p;
+          break;
+        }
+      }
+    }
+    expect(diag, isNotNull, reason: 'expected at least one diagonal word');
+  });
 
   test('finds every placed word by swiping start->end (any direction)', () {
     final level = gen.generate(120); // uses diagonals + reverse

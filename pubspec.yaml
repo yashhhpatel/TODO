@@ -52,8 +52,11 @@ dependencies:
   google_mobile_ads: ^5.1.0
   in_app_purchase: ^3.2.0
 
-  # Launch mailto / urls (Contact Us, Privacy, Terms)
+  # Launch mailto / urls (Contact Us, Privacy, Terms, Rate Us)
   url_launcher: ^6.3.0
+
+  # Native share sheet (Share App)
+  share_plus: ^10.0.0
 
   # Local notifications for daily streak / coin reminders
   flutter_local_notifications: ^17.2.3
