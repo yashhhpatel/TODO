@@ -292,25 +292,45 @@ class _GameplayScreenState extends State<GameplayScreen> {
             Expanded(
               child: LayoutBuilder(
                 builder: (context, constraints) {
-                  final gridSide = _minD(
-                    constraints.maxWidth - 32,
-                    constraints.maxHeight * 0.5,
-                  );
-                  final cellSize = gridSide / _controller.level.gridSize;
+                  final w = constraints.maxWidth;
+                  final h = constraints.maxHeight;
+                  final n = _controller.level.gridSize;
+
+                  // Reserve only a compact strip for the words-to-find list;
+                  // the grid takes the rest of the space (width-first) so its
+                  // letters stay large and readable even on the biggest grids.
+                  final wordReserve = (h * 0.22).clamp(96.0, 170.0);
+                  var gridSide = w - 20;
+                  final maxByHeight = h - wordReserve - 20;
+                  if (gridSide > maxByHeight) gridSide = maxByHeight;
+
+                  var cellSize = gridSide / n;
+                  // Cap cell size so small grids keep a comfortable (not
+                  // oversized) look; large grids are unaffected.
+                  const maxCell = 56.0;
+                  if (cellSize > maxCell) {
+                    cellSize = maxCell;
+                    gridSide = maxCell * n;
+                  }
+                  if (gridSide < 60) {
+                    gridSide = w - 20;
+                    cellSize = gridSide / n;
+                  }
+
                   return Column(
                     children: [
-                      // Grid + word list are vertically centred in the
-                      // available space so the grid sits comfortably below the
-                      // header rather than hugging the top.
+                      // Grid + compact word list are vertically centred in the
+                      // available space. The grid is sized to fill the width so
+                      // higher-level (larger) grids stay prominent and legible.
                       Expanded(
                         child: Center(
                           child: SingleChildScrollView(
-                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            padding: const EdgeInsets.symmetric(vertical: 10),
                             child: Column(
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 _buildGrid(gridSide, cellSize),
-                                const SizedBox(height: 28),
+                                const SizedBox(height: 14),
                                 _buildWordList(),
                               ],
                             ),
@@ -329,8 +349,6 @@ class _GameplayScreenState extends State<GameplayScreen> {
       ),
     );
   }
-
-  double _minD(double a, double b) => a < b ? a : b;
 
   Widget _buildGrid(double side, double cellSize) {
     return SizedBox(
@@ -357,28 +375,28 @@ class _GameplayScreenState extends State<GameplayScreen> {
       animation: _controller,
       builder: (context, _) {
         return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
+          padding: const EdgeInsets.symmetric(horizontal: 14),
           child: Column(
             children: [
               Text(
                 '${_controller.foundCount} / ${_controller.totalWords} words found',
                 style: const TextStyle(
                     color: AppColors.grey500,
-                    fontSize: 12,
+                    fontSize: 11,
                     fontWeight: FontWeight.w600,
                     letterSpacing: 1),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 8),
               Wrap(
-                spacing: 8,
-                runSpacing: 8,
+                spacing: 6,
+                runSpacing: 6,
                 alignment: WrapAlignment.center,
                 children: _controller.level.words.map((w) {
                   final found = _controller.isWordFound(w);
                   return AnimatedContainer(
                     duration: const Duration(milliseconds: 250),
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 14, vertical: 8),
+                        horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
                       color: found ? AppColors.ink : AppColors.grey100,
                       borderRadius: BorderRadius.circular(AppRadii.pill),
@@ -388,7 +406,7 @@ class _GameplayScreenState extends State<GameplayScreen> {
                       style: TextStyle(
                         color: found ? Colors.white : AppColors.grey700,
                         fontWeight: FontWeight.w700,
-                        fontSize: 14,
+                        fontSize: 13,
                         decoration: found
                             ? TextDecoration.lineThrough
                             : TextDecoration.none,
