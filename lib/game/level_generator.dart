@@ -26,7 +26,8 @@ class LevelGenerator {
       final selection = bank.selectForLevel(
         level: level,
         count: wanted,
-        length: profile.wordLength,
+        minLen: profile.minWordLen,
+        maxLen: profile.maxWordLen,
       );
       final words = selection.words;
       if (words.length < wanted) continue;
@@ -43,7 +44,7 @@ class LevelGenerator {
 
         final def = _assemble(level, profile, selection.category, placed.grid,
             placed.placements);
-        if (_validate(def, profile.wordLength)) return def;
+        if (_validate(def, profile.minWordLen, profile.maxWordLen)) return def;
       }
     }
 
@@ -82,7 +83,7 @@ class LevelGenerator {
   }
 
   /// Full structural validation. Every failure means we discard and retry.
-  bool _validate(LevelDefinition def, int expectedLen) {
+  bool _validate(LevelDefinition def, int minLen, int maxLen) {
     final size = def.gridSize;
     if (def.grid.length != size) return false;
     for (final row in def.grid) {
@@ -94,7 +95,8 @@ class LevelGenerator {
     if (def.placements.isEmpty) return false;
 
     for (final p in def.placements) {
-      if (p.word.length != expectedLen) return false; // exact length required
+      // Word length must be within the level's allowed window.
+      if (p.word.length < minLen || p.word.length > maxLen) return false;
       if (p.cells.length != p.word.length) return false;
       for (int i = 0; i < p.cells.length; i++) {
         final c = p.cells[i];
@@ -116,7 +118,8 @@ class LevelGenerator {
       final sel = bank.selectForLevel(
         level: level,
         count: wanted,
-        length: profile.wordLength,
+        minLen: profile.minWordLen,
+        maxLen: profile.maxWordLen,
       );
       if (sel.words.length < wanted) continue;
       for (int attempt = 0; attempt < 200; attempt++) {

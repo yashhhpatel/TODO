@@ -26,15 +26,25 @@ void main() {
     WordDirection.upRight,
   };
 
-  test('diagonal words are generated across levels', () {
+  test('diagonal words are generated in the mid/late levels', () {
     var diagonalCount = 0;
-    for (int level = 1; level <= 30; level++) {
+    for (int level = 21; level <= 80; level++) {
       final def = gen.generate(level);
       diagonalCount +=
           def.placements.where((p) => diagonals.contains(p.direction)).length;
     }
     expect(diagonalCount, greaterThan(0),
-        reason: 'diagonally-placed words should appear');
+        reason: 'diagonally-placed words should appear from level 21 on');
+  });
+
+  test('early levels stay beginner-friendly (no diagonals in levels 1-5)', () {
+    for (int level = 1; level <= 5; level++) {
+      final def = gen.generate(level);
+      for (final p in def.placements) {
+        expect(diagonals.contains(p.direction), isFalse,
+            reason: 'level $level should have no diagonal words');
+      }
+    }
   });
 
   test('a diagonal word can be selected from both ends', () {

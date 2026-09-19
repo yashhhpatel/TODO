@@ -21,31 +21,34 @@ WordBank _bank() {
   return b;
 }
 
-// Representative level -> (expected grid, expected exact word length).
+// Representative level -> [grid, minLen, maxLen] per the 1..1000 progression.
 const _cases = <int, List<int>>{
-  1: [6, 4], 12: [6, 4], 25: [6, 4],
-  26: [7, 5], 40: [7, 5], 50: [7, 5],
-  51: [8, 6], 60: [8, 6], 75: [8, 6],
-  76: [9, 7], 88: [9, 7], 100: [9, 7],
-  101: [10, 8], 130: [10, 8], 150: [10, 8],
-  151: [11, 9], 175: [11, 9], 200: [11, 9],
-  201: [12, 10], 260: [12, 10], 300: [12, 10],
-  301: [13, 11], 400: [13, 11], 500: [13, 11],
-  501: [14, 12], 750: [14, 12], 1000: [14, 12],
+  1: [6, 4, 4], 5: [6, 4, 4], 10: [6, 4, 4],
+  20: [6, 4, 5],
+  30: [7, 5, 5], 40: [7, 5, 6],
+  50: [8, 6, 6], 75: [8, 6, 7],
+  100: [9, 7, 7], 150: [9, 7, 8],
+  200: [10, 8, 8], 275: [10, 8, 9],
+  300: [11, 9, 9], 400: [11, 9, 10],
+  500: [12, 10, 10], 600: [12, 10, 11],
+  700: [13, 11, 11], 800: [13, 11, 12],
+  900: [14, 12, 12], 1000: [15, 12, 12],
 };
 
 void main() {
   final bank = _bank();
   final gen = LevelGenerator(bank);
 
-  test('every range uses the exact grid size and word length', () {
+  test('every range uses the correct grid + word-length window', () {
     _cases.forEach((level, expected) {
       final grid = expected[0];
-      final len = expected[1];
+      final minLen = expected[1];
+      final maxLen = expected[2];
 
       final profile = Difficulty.forLevel(level);
       expect(profile.gridSize, grid, reason: 'level $level grid');
-      expect(profile.wordLength, len, reason: 'level $level word length');
+      expect(profile.minWordLen, minLen, reason: 'level $level minLen');
+      expect(profile.maxWordLen, maxLen, reason: 'level $level maxLen');
 
       final def = gen.generate(level);
       expect(def.gridSize, grid, reason: 'level $level generated grid');
@@ -55,11 +58,12 @@ void main() {
       }
       expect(def.placements, isNotEmpty);
       for (final p in def.placements) {
-        expect(p.word.length, len,
-            reason: 'level $level word "${p.word}" must be $len letters');
-        // Word actually present at its coordinates and in bounds.
-        expect(p.cells.length, len);
-        for (int i = 0; i < len; i++) {
+        expect(p.word.length >= minLen && p.word.length <= maxLen, isTrue,
+            reason:
+                'level $level word "${p.word}" must be $minLen-$maxLen letters');
+        // Word actually present at its coordinates and in bounds (solvable).
+        expect(p.cells.length, p.word.length);
+        for (int i = 0; i < p.word.length; i++) {
           final c = p.cells[i];
           expect(c.row >= 0 && c.row < grid, isTrue);
           expect(c.col >= 0 && c.col < grid, isTrue);
@@ -67,6 +71,27 @@ void main() {
         }
       }
     });
+  });
+
+  test('word count and grid grow with level (no shrinking)', () {
+    final samples = [1, 30, 100, 300, 600, 1000];
+    int prevGrid = 0, prevCount = 0;
+    for (final level in samples) {
+      final p = Difficulty.forLevel(level);
+      expect(p.gridSize, greaterThanOrEqualTo(prevGrid),
+          reason: 'grid should not shrink at $level');
+      expect(p.wordCount, greaterThanOrEqualTo(prevCount),
+          reason: 'word count should not shrink at $level');
+      prevGrid = p.gridSize;
+      prevCount = p.wordCount;
+    }
+    // Level 1000 must be meaningfully harder than level 1.
+    final a = Difficulty.forLevel(1);
+    final z = Difficulty.forLevel(1000);
+    expect(z.gridSize, greaterThan(a.gridSize));
+    expect(z.maxWordLen, greaterThan(a.maxWordLen));
+    expect(z.wordCount, greaterThan(a.wordCount));
+    expect(z.directions.length, greaterThan(a.directions.length));
   });
 
   test('generation is deterministic per level number', () {

@@ -77,22 +77,33 @@ class WordBank {
     return out;
   }
 
-  /// Selects [count] distinct words of EXACTLY [length] characters for a level.
+  /// Selects [count] distinct words whose length is within [minLen]..[maxLen]
+  /// (inclusive) for a level. Words are always bucketed by their real length,
+  /// so a returned word can never fall outside the requested range.
   ///
-  /// Deterministic for a given (level, count, length). A per-level advancing
-  /// offset into a stably shuffled pool keeps neighbouring levels from reusing
-  /// the same words until the pool cycles.
+  /// Deterministic for a given (level, count, minLen, maxLen). A per-level
+  /// advancing offset into a stably shuffled pool keeps neighbouring levels
+  /// from reusing the same words until the pool cycles.
   ({String category, List<String> words}) selectForLevel({
     required int level,
     required int count,
-    required int length,
+    required int minLen,
+    required int maxLen,
   }) {
-    final pool = (_byLength[length] ?? const [])
-        .where((w) => w.length == length)
-        .toList();
-    if (pool.isEmpty) return (category: '$length Letters', words: const []);
+    final label = minLen == maxLen ? '$minLen Letters' : '$minLen-$maxLen Letters';
 
-    final shuffled = _seededShuffle(pool, length * 7919 + 13);
+    final pool = <String>[];
+    for (int len = minLen; len <= maxLen; len++) {
+      final bucket = _byLength[len];
+      if (bucket != null) {
+        for (final w in bucket) {
+          if (w.length >= minLen && w.length <= maxLen) pool.add(w);
+        }
+      }
+    }
+    if (pool.isEmpty) return (category: label, words: const []);
+
+    final shuffled = _seededShuffle(pool, minLen * 7919 + maxLen * 131 + 13);
     final chosen = <String>[];
     final seen = <String>{};
     int idx = ((level - 1) * count) % shuffled.length;
@@ -104,6 +115,6 @@ class WordBank {
       idx++;
       guard++;
     }
-    return (category: '$length Letters', words: chosen);
+    return (category: label, words: chosen);
   }
 }
