@@ -45,12 +45,19 @@ class PrimaryButton extends StatelessWidget {
                 Icon(icon, color: fg, size: iconSize),
                 const SizedBox(width: 10),
               ],
-              Text(
-                label,
-                style: TextStyle(
-                  color: fg,
-                  fontWeight: FontWeight.w700,
-                  fontSize: fontSize,
+              Flexible(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.center,
+                  child: Text(
+                    label,
+                    maxLines: 1,
+                    style: TextStyle(
+                      color: fg,
+                      fontWeight: FontWeight.w700,
+                      fontSize: fontSize,
+                    ),
+                  ),
                 ),
               ),
             ],
@@ -85,20 +92,27 @@ class SecondaryButton extends StatelessWidget {
         borderRadius: BorderRadius.circular(AppRadii.md),
         onTap: onTap,
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 22),
+          padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 14),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               if (icon != null) ...[
                 Icon(icon, color: AppColors.ink, size: 20),
-                const SizedBox(width: 10),
+                const SizedBox(width: 8),
               ],
-              Text(
-                label,
-                style: const TextStyle(
-                  color: AppColors.ink,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 16,
+              Flexible(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.center,
+                  child: Text(
+                    label,
+                    maxLines: 1,
+                    style: const TextStyle(
+                      color: AppColors.ink,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 16,
+                    ),
+                  ),
                 ),
               ),
             ],
