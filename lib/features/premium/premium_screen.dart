@@ -1,18 +1,41 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../core/app_config.dart';
 import '../../core/theme.dart';
 import '../../services/player_service.dart';
 import '../../services/purchase_service.dart';
 import '../../widgets/common.dart';
 
-class PremiumScreen extends StatelessWidget {
+/// Settings -> Remove Ads. The single purchase surface for the lifetime
+/// ad-free product; there is no other "Remove Ads" entry point in the app.
+class PremiumScreen extends StatefulWidget {
   const PremiumScreen({super.key});
+
+  @override
+  State<PremiumScreen> createState() => _PremiumScreenState();
+}
+
+class _PremiumScreenState extends State<PremiumScreen> {
+  String? _shownError;
 
   @override
   Widget build(BuildContext context) {
     final player = context.watch<PlayerService>();
     final purchases = context.watch<PurchaseService>();
     final premium = player.premium;
+
+    // Surface a failed purchase once (cancellations stay silent by design).
+    final error = purchases.lastError;
+    if (error != null && error != _shownError) {
+      _shownError = error;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(error), duration: const Duration(seconds: 3)),
+        );
+        purchases.clearError();
+      });
+    }
 
     return ScreenScaffold(
       title: 'Remove Ads',
@@ -30,22 +53,32 @@ class PremiumScreen extends StatelessWidget {
                   color: AppColors.ink,
                   borderRadius: BorderRadius.circular(26),
                 ),
-                child: const Icon(Icons.workspace_premium_rounded,
-                    color: AppColors.star, size: 50),
+                child: Icon(
+                  premium
+                      ? Icons.workspace_premium_rounded
+                      : Icons.workspace_premium_outlined,
+                  color: AppColors.star,
+                  size: 50,
+                ),
               ),
             ),
             const SizedBox(height: 24),
             Center(
-              child: Text(premium ? 'You are Premium' : 'Go Ad-Free',
-                  style: AppTheme.number(26)),
+              child: Text(
+                premium ? '${AppConfig.removeAdsLabel} Active' : 'Go Ad-Free',
+                textAlign: TextAlign.center,
+                style: AppTheme.number(26),
+              ),
             ),
             const SizedBox(height: 8),
-            const Center(
+            Center(
               child: Text(
-                'A one-time purchase (not a subscription) that gives you '
-                'lifetime ad-free access.',
+                premium
+                    ? 'This device is permanently ad-free. Thank you for your support!'
+                    : 'A one-time purchase (not a subscription) that gives you '
+                        'lifetime ad-free access.',
                 textAlign: TextAlign.center,
-                style: TextStyle(color: AppColors.grey700, height: 1.5),
+                style: const TextStyle(color: AppColors.grey700, height: 1.5),
               ),
             ),
             const SizedBox(height: 24),
@@ -62,10 +95,18 @@ class PremiumScreen extends StatelessWidget {
             const Spacer(),
             if (premium)
               const Center(
-                child: Text('Thank you for your support!',
-                    style: TextStyle(
-                        color: AppColors.success,
-                        fontWeight: FontWeight.w700)),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.check_circle_rounded,
+                        color: AppColors.success, size: 20),
+                    SizedBox(width: 8),
+                    Text('Lifetime Ads-Free Active',
+                        style: TextStyle(
+                            color: AppColors.success,
+                            fontWeight: FontWeight.w700)),
+                  ],
+                ),
               )
             else ...[
               if (!purchases.storeAvailable)
@@ -80,9 +121,7 @@ class PremiumScreen extends StatelessWidget {
               PrimaryButton(
                 label: purchases.purchaseInProgress
                     ? 'Processing…'
-                    : purchases.removeAdsProduct != null
-                        ? 'Get Lifetime Ad-Free  ${purchases.priceLabel}'
-                        : 'Get Lifetime Ad-Free',
+                    : '${AppConfig.removeAdsLabel} — ${purchases.priceLabel}',
                 icon: Icons.lock_open_rounded,
                 onTap: (purchases.removeAdsProduct == null ||
                         purchases.purchaseInProgress)

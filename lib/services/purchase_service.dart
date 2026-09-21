@@ -30,8 +30,18 @@ class PurchaseService extends ChangeNotifier {
 
   bool get storeAvailable => _available;
   ProductDetails? get removeAdsProduct => _removeAdsProduct;
-  String get priceLabel => _removeAdsProduct?.price ?? '—';
+  // Real Play Store price once loaded; a display-only fallback otherwise.
+  // The amount actually charged always comes from Google Play itself.
+  String get priceLabel =>
+      _removeAdsProduct?.price ?? AppConfig.removeAdsPriceFallback;
   bool get isPremium => _player.premium;
+
+  void clearError() {
+    if (lastError != null) {
+      lastError = null;
+      notifyListeners();
+    }
+  }
 
   Future<void> init() async {
     try {

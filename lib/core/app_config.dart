@@ -35,6 +35,11 @@ class AppConfig {
   // Create this exact product id in the Play Console as a ONE-TIME product
   // (not a subscription) priced at ₹2,999.
   static const String removeAdsProductId = 'remove_ads_lifetime';
+  static const String removeAdsLabel = 'Lifetime Ads-Free';
+  // Display-only fallback shown before the real Play Store price has loaded
+  // (e.g. store unavailable in a dev/emulator build). The price the user is
+  // actually charged always comes from Google Play's own product details.
+  static const String removeAdsPriceFallback = '₹2,999';
 
   // ---- Rewards ----
   static const int rewardedAdCoins = 100;

@@ -66,7 +66,9 @@ class SettingsScreen extends StatelessWidget {
                 const SizedBox(width: 14),
                 Expanded(
                   child: Text(
-                    player.premium ? 'Premium Active' : 'Remove Ads',
+                    player.premium
+                        ? '${AppConfig.removeAdsLabel} Active'
+                        : 'Remove Ads',
                     style: const TextStyle(
                         fontWeight: FontWeight.w700, fontSize: 15),
                   ),
