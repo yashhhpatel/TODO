@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'core/app_config.dart';
+import 'core/route_observer.dart';
 import 'core/theme.dart';
 import 'features/home/home_screen.dart';
 import 'features/offline/offline_overlay.dart';
@@ -18,6 +19,7 @@ class WordFinderApp extends StatelessWidget {
       title: AppConfig.appName,
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
+      navigatorObservers: [appRouteObserver],
       builder: (context, child) {
         // Global offline overlay preserves navigation underneath.
         return Stack(

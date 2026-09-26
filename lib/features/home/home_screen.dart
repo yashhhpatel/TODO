@@ -6,6 +6,7 @@ import '../../core/theme.dart';
 import '../../services/player_service.dart';
 import '../../widgets/banner_ad_widget.dart';
 import '../../widgets/common.dart';
+import '../../widgets/letter_field_background.dart';
 import '../achievements/achievements_screen.dart';
 import '../daily_reward/daily_reward_screen.dart';
 import '../gameplay/gameplay_screen.dart';
@@ -26,125 +27,135 @@ class HomeScreen extends StatelessWidget {
     final current = player.highestUnlocked;
 
     return Scaffold(
-      body: SafeArea(
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
-              child: Row(
-                children: [
-                  Container(
-                    width: 38,
-                    height: 38,
-                    decoration: BoxDecoration(
-                      color: AppColors.ink,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Icon(Icons.grid_view_rounded,
-                        color: Colors.white, size: 20),
-                  ),
-                  const SizedBox(width: 10),
-                  Text(AppConfig.appName, style: AppTheme.number(20)),
-                  const Spacer(),
-                  CoinPill(coins: player.coins),
-                  const SizedBox(width: 10),
-                  _SettingsButton(onTap: () => _push(context, const SettingsScreen())),
-                ],
-              ),
-            ),
-            Expanded(
-              child: Center(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
+      body: Stack(
+        children: [
+          // Decorative, game-themed background — sits behind everything and
+          // never intercepts touches.
+          const Positioned.fill(child: LetterFieldBackground()),
+          SafeArea(
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+                  child: Row(
                     children: [
-                      // Two cards above the Level section.
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _HomeCard(
-                              icon: Icons.map_rounded,
-                              label: 'Level Map',
-                              onTap: () =>
-                                  _push(context, const LevelMapScreen()),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: _HomeCard(
-                              icon: Icons.card_giftcard_rounded,
-                              label: 'Daily Reward',
-                              highlight: player.canClaimDailyReward,
-                              onTap: () =>
-                                  _push(context, const DailyRewardScreen()),
-                            ),
-                          ),
-                        ],
+                      Container(
+                        width: 38,
+                        height: 38,
+                        decoration: BoxDecoration(
+                          color: AppColors.ink,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(Icons.grid_view_rounded,
+                            color: Colors.white, size: 20),
                       ),
-                      const SizedBox(height: 16),
-                      // Centered Level section.
-                      _HeroCard(currentLevel: current),
-                      const SizedBox(height: 16),
-                      // Streak / Stars / Done — directly below the Level section.
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _MiniStat(
-                              icon: Icons.local_fire_department_rounded,
-                              label: 'Streak',
-                              value: '${player.currentStreak}d',
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: _MiniStat(
-                              icon: Icons.star_rounded,
-                              label: 'Stars',
-                              value: '${player.starsEarned}',
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: _MiniStat(
-                              icon: Icons.check_circle_rounded,
-                              label: 'Done',
-                              value: '${player.levelsCompleted}',
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      // Two cards below.
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _HomeCard(
-                              icon: Icons.emoji_events_rounded,
-                              label: 'Achievements',
-                              onTap: () =>
-                                  _push(context, const AchievementsScreen()),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: _HomeCard(
-                              icon: Icons.insights_rounded,
-                              label: 'Statistics',
-                              onTap: () =>
-                                  _push(context, const StatisticsScreen()),
-                            ),
-                          ),
-                        ],
-                      ),
+                      const SizedBox(width: 10),
+                      Text(AppConfig.appName, style: AppTheme.number(20)),
+                      const Spacer(),
+                      CoinPill(coins: player.coins),
+                      const SizedBox(width: 10),
+                      _SettingsButton(
+                          onTap: () =>
+                              _push(context, const SettingsScreen())),
                     ],
                   ),
                 ),
-              ),
+                Expanded(
+                  child: Center(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // Two cards above the Level section.
+                          Row(
+                            children: [
+                              Expanded(
+                                child: _HomeCard(
+                                  icon: Icons.map_rounded,
+                                  label: 'Level Map',
+                                  onTap: () =>
+                                      _push(context, const LevelMapScreen()),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: _HomeCard(
+                                  icon: Icons.card_giftcard_rounded,
+                                  label: 'Daily Reward',
+                                  highlight: player.canClaimDailyReward,
+                                  onTap: () => _push(
+                                      context, const DailyRewardScreen()),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          // Centered Level section.
+                          _HeroCard(currentLevel: current),
+                          const SizedBox(height: 16),
+                          // Streak / Stars / Done — directly below the Level
+                          // section.
+                          Row(
+                            children: [
+                              Expanded(
+                                child: _MiniStat(
+                                  icon: Icons.local_fire_department_rounded,
+                                  label: 'Streak',
+                                  value: '${player.currentStreak}d',
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: _MiniStat(
+                                  icon: Icons.star_rounded,
+                                  label: 'Stars',
+                                  value: '${player.starsEarned}',
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: _MiniStat(
+                                  icon: Icons.check_circle_rounded,
+                                  label: 'Done',
+                                  value: '${player.levelsCompleted}',
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          // Two cards below.
+                          Row(
+                            children: [
+                              Expanded(
+                                child: _HomeCard(
+                                  icon: Icons.emoji_events_rounded,
+                                  label: 'Achievements',
+                                  onTap: () => _push(
+                                      context, const AchievementsScreen()),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: _HomeCard(
+                                  icon: Icons.insights_rounded,
+                                  label: 'Statistics',
+                                  onTap: () => _push(
+                                      context, const StatisticsScreen()),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                const BannerAdSlot(),
+              ],
             ),
-            const BannerAdSlot(),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
