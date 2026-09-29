@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/app_config.dart';
+import '../../core/app_route.dart';
 import '../../core/theme.dart';
 import '../../services/player_service.dart';
 import '../../widgets/banner_ad_widget.dart';
@@ -18,7 +19,21 @@ class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
   void _push(BuildContext context, Widget screen) {
-    Navigator.of(context).push(MaterialPageRoute(builder: (_) => screen));
+    Navigator.of(context).push(FadeSlideRoute(builder: (_) => screen));
+  }
+
+  /// One-time staggered fade + rise for each Home section on first show.
+  Widget _entrance(int index, Widget child) {
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: 1),
+      duration: Duration(milliseconds: 380 + index * 70),
+      curve: Curves.easeOutCubic,
+      builder: (context, v, c) => Opacity(
+        opacity: v,
+        child: Transform.translate(offset: Offset(0, (1 - v) * 18), child: c),
+      ),
+      child: child,
+    );
   }
 
   @override
@@ -55,8 +70,7 @@ class HomeScreen extends StatelessWidget {
                       CoinPill(coins: player.coins),
                       const SizedBox(width: 10),
                       _SettingsButton(
-                          onTap: () =>
-                              _push(context, const SettingsScreen())),
+                          onTap: () => _push(context, const SettingsScreen())),
                     ],
                   ),
                 ),
@@ -68,84 +82,90 @@ class HomeScreen extends StatelessWidget {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           // Two cards above the Level section.
-                          Row(
-                            children: [
-                              Expanded(
-                                child: _HomeCard(
-                                  icon: Icons.map_rounded,
-                                  label: 'Level Map',
-                                  onTap: () =>
-                                      _push(context, const LevelMapScreen()),
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: _HomeCard(
-                                  icon: Icons.card_giftcard_rounded,
-                                  label: 'Daily Reward',
-                                  highlight: player.canClaimDailyReward,
-                                  onTap: () => _push(
-                                      context, const DailyRewardScreen()),
-                                ),
-                              ),
-                            ],
-                          ),
+                          _entrance(
+                              0,
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: _HomeCard(
+                                      icon: Icons.map_rounded,
+                                      label: 'Level Map',
+                                      onTap: () => _push(
+                                          context, const LevelMapScreen()),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: _HomeCard(
+                                      icon: Icons.card_giftcard_rounded,
+                                      label: 'Daily Reward',
+                                      highlight: player.canClaimDailyReward,
+                                      onTap: () => _push(
+                                          context, const DailyRewardScreen()),
+                                    ),
+                                  ),
+                                ],
+                              )),
                           const SizedBox(height: 16),
                           // Centered Level section.
-                          _HeroCard(currentLevel: current),
+                          _entrance(1, _HeroCard(currentLevel: current)),
                           const SizedBox(height: 16),
                           // Streak / Stars / Done — directly below the Level
                           // section.
-                          Row(
-                            children: [
-                              Expanded(
-                                child: _MiniStat(
-                                  icon: Icons.local_fire_department_rounded,
-                                  label: 'Streak',
-                                  value: '${player.currentStreak}d',
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: _MiniStat(
-                                  icon: Icons.star_rounded,
-                                  label: 'Stars',
-                                  value: '${player.starsEarned}',
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: _MiniStat(
-                                  icon: Icons.check_circle_rounded,
-                                  label: 'Done',
-                                  value: '${player.levelsCompleted}',
-                                ),
-                              ),
-                            ],
-                          ),
+                          _entrance(
+                              2,
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: _MiniStat(
+                                      icon: Icons.local_fire_department_rounded,
+                                      label: 'Streak',
+                                      value: '${player.currentStreak}d',
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: _MiniStat(
+                                      icon: Icons.star_rounded,
+                                      label: 'Stars',
+                                      value: '${player.starsEarned}',
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: _MiniStat(
+                                      icon: Icons.check_circle_rounded,
+                                      label: 'Done',
+                                      value: '${player.levelsCompleted}',
+                                    ),
+                                  ),
+                                ],
+                              )),
                           const SizedBox(height: 16),
                           // Two cards below.
-                          Row(
-                            children: [
-                              Expanded(
-                                child: _HomeCard(
-                                  icon: Icons.emoji_events_rounded,
-                                  label: 'Achievements',
-                                  onTap: () => _push(
-                                      context, const AchievementsScreen()),
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: _HomeCard(
-                                  icon: Icons.insights_rounded,
-                                  label: 'Statistics',
-                                  onTap: () => _push(
-                                      context, const StatisticsScreen()),
-                                ),
-                              ),
-                            ],
-                          ),
+                          _entrance(
+                              3,
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: _HomeCard(
+                                      icon: Icons.emoji_events_rounded,
+                                      label: 'Achievements',
+                                      onTap: () => _push(
+                                          context, const AchievementsScreen()),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: _HomeCard(
+                                      icon: Icons.insights_rounded,
+                                      label: 'Statistics',
+                                      onTap: () => _push(
+                                          context, const StatisticsScreen()),
+                                    ),
+                                  ),
+                                ],
+                              )),
                         ],
                       ),
                     ),
@@ -235,7 +255,7 @@ class _MiniStat extends StatelessWidget {
         children: [
           Icon(icon, color: AppColors.ink, size: 22),
           const SizedBox(height: 6),
-          Text(value, style: AppTheme.number(18)),
+          _RollingText(text: value, style: AppTheme.number(18)),
           Text(label,
               style: const TextStyle(color: AppColors.grey500, fontSize: 11)),
         ],
@@ -292,7 +312,8 @@ class _HeroCard extends StatelessWidget {
                   letterSpacing: 1.5,
                   fontWeight: FontWeight.w600)),
           const SizedBox(height: 6),
-          Text('Level $currentLevel',
+          _RollingText(
+              text: 'Level $currentLevel',
               style: AppTheme.number(34, color: Colors.white)),
           const SizedBox(height: 18),
           PrimaryButton(
@@ -304,6 +325,41 @@ class _HeroCard extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Text that rolls up (old value slides out, new slides in) whenever its
+/// value changes — e.g. the level number after finishing a level.
+class _RollingText extends StatelessWidget {
+  final String text;
+  final TextStyle style;
+  const _RollingText({required this.text, required this.style});
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 380),
+      switchInCurve: Curves.easeOutCubic,
+      switchOutCurve: Curves.easeInCubic,
+      transitionBuilder: (child, anim) {
+        final incoming = child.key == ValueKey(text);
+        final offset = Tween<Offset>(
+          begin: Offset(0, incoming ? 0.6 : -0.6),
+          end: Offset.zero,
+        ).animate(anim);
+        return ClipRect(
+          child: SlideTransition(
+            position: offset,
+            child: FadeTransition(opacity: anim, child: child),
+          ),
+        );
+      },
+      layoutBuilder: (current, previous) => Stack(
+        alignment: Alignment.centerLeft,
+        children: [...previous, if (current != null) current],
+      ),
+      child: Text(text, key: ValueKey(text), style: style),
     );
   }
 }

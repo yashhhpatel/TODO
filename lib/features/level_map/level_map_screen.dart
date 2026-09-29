@@ -106,23 +106,31 @@ class _LevelNodeItem extends StatelessWidget {
     final amp = width * 0.28;
     final nodeX = width / 2 + amp * sin(index * 0.9);
 
-    return CustomPaint(
-      painter: _PathPainter(nodeX: nodeX, centerX: width / 2),
-      child: Stack(
-        children: [
-          Positioned(
-            left: nodeX - 34,
-            top: (108 - 68) / 2,
-            child: _NodeCircle(
-              level: level,
-              stars: stars,
-              completed: completed,
-              unlocked: unlocked,
-              isCurrent: isCurrent,
-              onTap: onTap,
+    // Nodes fade in softly as they scroll into view.
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: 1),
+      duration: const Duration(milliseconds: 260),
+      curve: Curves.easeOut,
+      builder: (context, v, c) => Opacity(opacity: v, child: c),
+      child: CustomPaint(
+        painter: _PathPainter(nodeX: nodeX, centerX: width / 2),
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Positioned(
+              left: nodeX - 34,
+              top: (108 - 68) / 2,
+              child: _NodeCircle(
+                level: level,
+                stars: stars,
+                completed: completed,
+                unlocked: unlocked,
+                isCurrent: isCurrent,
+                onTap: onTap,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -185,38 +193,40 @@ class _NodeCircle extends StatelessWidget {
       fg = AppColors.grey500;
     }
 
+    final circle = Container(
+      width: 68,
+      height: 68,
+      decoration: BoxDecoration(
+        color: bg,
+        shape: BoxShape.circle,
+        border: Border.all(
+          color: isCurrent ? AppColors.accent : AppColors.grey200,
+          width: isCurrent ? 3 : 1.5,
+        ),
+        boxShadow: [
+          if (unlocked)
+            BoxShadow(
+              color: Colors.black.withOpacity(0.06),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+        ],
+      ),
+      child: Center(
+        child: !unlocked
+            ? Icon(Icons.lock_rounded, color: fg, size: 24)
+            : completed
+                ? Icon(Icons.check_rounded, color: fg, size: 28)
+                : Text('$level', style: AppTheme.number(20, color: fg)),
+      ),
+    );
+
     return GestureDetector(
       onTap: onTap,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Container(
-            width: 68,
-            height: 68,
-            decoration: BoxDecoration(
-              color: bg,
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: isCurrent ? AppColors.accent : AppColors.grey200,
-                width: isCurrent ? 3 : 1.5,
-              ),
-              boxShadow: [
-                if (unlocked)
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.06),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  ),
-              ],
-            ),
-            child: Center(
-              child: !unlocked
-                  ? Icon(Icons.lock_rounded, color: fg, size: 24)
-                  : completed
-                      ? Icon(Icons.check_rounded, color: fg, size: 28)
-                      : Text('$level', style: AppTheme.number(20, color: fg)),
-            ),
-          ),
+          isCurrent ? _CurrentPulse(child: circle) : circle,
           const SizedBox(height: 2),
           if (completed)
             StarRow(count: stars, size: 13)
@@ -229,6 +239,65 @@ class _NodeCircle extends StatelessWidget {
                     letterSpacing: 1)),
         ],
       ),
+    );
+  }
+}
+
+/// Soft repeating ripple + gentle breathing scale that marks the level the
+/// player should play next. Only the single current node ever animates.
+class _CurrentPulse extends StatefulWidget {
+  final Widget child;
+  const _CurrentPulse({required this.child});
+
+  @override
+  State<_CurrentPulse> createState() => _CurrentPulseState();
+}
+
+class _CurrentPulseState extends State<_CurrentPulse>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _c = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 1800),
+  )..repeat();
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _c,
+      builder: (context, child) {
+        final t = _c.value;
+        final breath = 1 + 0.04 * sin(t * 2 * pi);
+        final ring = Curves.easeOut.transform(t);
+        return Stack(
+          alignment: Alignment.center,
+          clipBehavior: Clip.none,
+          children: [
+            Positioned(
+              left: -13 * ring,
+              top: -13 * ring,
+              width: 68 + 26 * ring,
+              height: 68 + 26 * ring,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: AppColors.accent.withOpacity(0.45 * (1 - ring)),
+                    width: 2,
+                  ),
+                ),
+              ),
+            ),
+            Transform.scale(scale: breath, child: child),
+          ],
+        );
+      },
+      child: widget.child,
     );
   }
 }

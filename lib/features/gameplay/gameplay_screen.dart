@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/app_config.dart';
+import '../../core/app_route.dart';
 import '../../core/theme.dart';
 import '../../game/level_generator.dart';
 import '../../game/reward_calculator.dart';
@@ -13,6 +14,7 @@ import '../../services/audio_service.dart';
 import '../../services/haptic_service.dart';
 import '../../services/player_service.dart';
 import '../../widgets/banner_ad_widget.dart';
+import '../../widgets/celebration_burst.dart';
 import '../../widgets/common.dart';
 import 'grid_painter.dart';
 import 'level_complete_sheet.dart';
@@ -23,7 +25,7 @@ class GameplayScreen extends StatefulWidget {
 
   static void open(BuildContext context, int level) {
     Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => GameplayScreen(level: level)),
+      FadeSlideRoute(builder: (_) => GameplayScreen(level: level)),
     );
   }
 
@@ -31,10 +33,18 @@ class GameplayScreen extends StatefulWidget {
   State<GameplayScreen> createState() => _GameplayScreenState();
 }
 
-class _GameplayScreenState extends State<GameplayScreen> {
+class _GameplayScreenState extends State<GameplayScreen>
+    with SingleTickerProviderStateMixin {
   late WordSearchController _controller;
   bool _handled = false;
   bool _navigating = false;
+
+  // Drives the brief "found word" celebration (glow, sparkles, letter pop)
+  // on the grid; see grid_painter.dart. Runs once per found word, then idles.
+  late final AnimationController _foundPulse;
+  late final Animation<double> _foundPulseCurve;
+  int _lastFoundCount = 0;
+  FoundWord? _pulsingWord;
 
   @override
   void initState() {
@@ -46,11 +56,27 @@ class _GameplayScreenState extends State<GameplayScreen> {
       audio: context.read<AudioService>(),
       haptics: context.read<HapticService>(),
     );
+    _foundPulse = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 550),
+    );
+    _foundPulseCurve =
+        CurvedAnimation(parent: _foundPulse, curve: Curves.easeOut);
     _controller.addListener(_onControllerChanged);
     _controller.start();
   }
 
   void _onControllerChanged() {
+    if (_controller.foundCount > _lastFoundCount) {
+      _lastFoundCount = _controller.foundCount;
+      if (_controller.foundWords.isNotEmpty) {
+        _pulsingWord = _controller.foundWords.last;
+        _foundPulse
+          ..stop()
+          ..reset()
+          ..forward();
+      }
+    }
     if (_controller.isComplete && !_handled) {
       _handled = true;
       _onComplete();
@@ -61,6 +87,7 @@ class _GameplayScreenState extends State<GameplayScreen> {
   void dispose() {
     _controller.removeListener(_onControllerChanged);
     _controller.dispose();
+    _foundPulse.dispose();
     super.dispose();
   }
 
@@ -167,7 +194,7 @@ class _GameplayScreenState extends State<GameplayScreen> {
     final next = widget.level + 1;
     if (next <= AppConfig.totalLevels) {
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => GameplayScreen(level: next)),
+        FadeSlideRoute(builder: (_) => GameplayScreen(level: next)),
       );
     } else {
       Navigator.of(context).pop();
@@ -182,46 +209,20 @@ class _GameplayScreenState extends State<GameplayScreen> {
 
   Future<void> _showAchievement(Achievement a) async {
     context.read<AudioService>().play(Sfx.achievement);
-    await showDialog(
+    await showGeneralDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 72,
-              height: 72,
-              decoration: BoxDecoration(
-                color: AppColors.ink,
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Icon(a.icon, color: AppColors.star, size: 38),
-            ),
-            const SizedBox(height: 16),
-            const Text('Achievement Unlocked!',
-                style: TextStyle(color: AppColors.grey500, fontSize: 12)),
-            const SizedBox(height: 4),
-            Text(a.title, style: AppTheme.number(20)),
-            const SizedBox(height: 4),
-            Text(a.description,
-                textAlign: TextAlign.center,
-                style: const TextStyle(color: AppColors.grey700)),
-            if (a.rewardCoins > 0) ...[
-              const SizedBox(height: 8),
-              Text('+${a.rewardCoins} coins',
-                  style: AppTheme.number(16, color: AppColors.coin)),
-            ],
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Nice!'),
-          ),
-        ],
-      ),
+      barrierDismissible: true,
+      barrierLabel: 'Achievement',
+      barrierColor: Colors.black.withOpacity(0.45),
+      transitionDuration: const Duration(milliseconds: 380),
+      pageBuilder: (ctx, anim, secondaryAnim) => _AchievementDialog(a: a),
+      transitionBuilder: (ctx, anim, secondaryAnim, child) {
+        final curved = CurvedAnimation(parent: anim, curve: Curves.easeOutBack);
+        return FadeTransition(
+          opacity: anim,
+          child: ScaleTransition(scale: curved, child: child),
+        );
+      },
     );
   }
 
@@ -243,8 +244,7 @@ class _GameplayScreenState extends State<GameplayScreen> {
     final action = await showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
-        shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Text(title),
         content: Text(canPay
             ? 'Use $cost coins for this hint?'
@@ -363,7 +363,12 @@ class _GameplayScreenState extends State<GameplayScreen> {
         onTapUp: (d) =>
             _controller.tapCell(_posFromOffset(d.localPosition, cellSize)),
         child: CustomPaint(
-          painter: GridPainter(_controller, _controller.level.gridSize),
+          painter: GridPainter(
+            _controller,
+            _controller.level.gridSize,
+            pulse: _foundPulseCurve,
+            pulsingWord: _pulsingWord,
+          ),
           size: Size.square(side),
         ),
       ),
@@ -386,35 +391,40 @@ class _GameplayScreenState extends State<GameplayScreen> {
                     fontWeight: FontWeight.w600,
                     letterSpacing: 1),
               ),
+              const SizedBox(height: 6),
+              SizedBox(
+                width: 140,
+                child: TweenAnimationBuilder<double>(
+                  tween: Tween(
+                    end: _controller.totalWords == 0
+                        ? 0
+                        : _controller.foundCount / _controller.totalWords,
+                  ),
+                  duration: const Duration(milliseconds: 450),
+                  curve: Curves.easeOutCubic,
+                  builder: (context, v, _) => ClipRRect(
+                    borderRadius: BorderRadius.circular(3),
+                    child: LinearProgressIndicator(
+                      value: v,
+                      minHeight: 4,
+                      backgroundColor: AppColors.grey200,
+                      valueColor:
+                          const AlwaysStoppedAnimation(AppColors.accent),
+                    ),
+                  ),
+                ),
+              ),
               const SizedBox(height: 8),
               Wrap(
                 spacing: 6,
                 runSpacing: 6,
                 alignment: WrapAlignment.center,
-                children: _controller.level.words.map((w) {
-                  final found = _controller.isWordFound(w);
-                  return AnimatedContainer(
-                    duration: const Duration(milliseconds: 250),
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: found ? AppColors.ink : AppColors.grey100,
-                      borderRadius: BorderRadius.circular(AppRadii.pill),
-                    ),
-                    child: Text(
-                      w,
-                      style: TextStyle(
-                        color: found ? Colors.white : AppColors.grey700,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 13,
-                        decoration: found
-                            ? TextDecoration.lineThrough
-                            : TextDecoration.none,
-                        decorationColor: Colors.white,
-                      ),
-                    ),
-                  );
-                }).toList(),
+                children: _controller.level.words
+                    .map((w) => _WordChip(
+                          word: w,
+                          found: _controller.isWordFound(w),
+                        ))
+                    .toList(),
               ),
             ],
           ),
@@ -457,6 +467,191 @@ class _GameplayScreenState extends State<GameplayScreen> {
   }
 }
 
+/// Achievement unlock card, shown via a bouncy scale/fade dialog transition.
+/// The badge gets a one-shot sparkle burst behind it.
+class _AchievementDialog extends StatefulWidget {
+  final Achievement a;
+  const _AchievementDialog({required this.a});
+
+  @override
+  State<_AchievementDialog> createState() => _AchievementDialogState();
+}
+
+class _AchievementDialogState extends State<_AchievementDialog>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _burst = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 900),
+  );
+
+  @override
+  void initState() {
+    super.initState();
+    Future.delayed(const Duration(milliseconds: 180), () {
+      if (mounted) _burst.forward();
+    });
+  }
+
+  @override
+  void dispose() {
+    _burst.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final a = widget.a;
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 32),
+        child: Material(
+          color: AppColors.card,
+          borderRadius: BorderRadius.circular(24),
+          elevation: 0,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(24, 28, 24, 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SizedBox(
+                  width: 150,
+                  height: 96,
+                  child: Stack(
+                    alignment: Alignment.center,
+                    clipBehavior: Clip.none,
+                    children: [
+                      CelebrationBurst(
+                        progress: CurvedAnimation(
+                            parent: _burst, curve: Curves.easeOut),
+                        size: 170,
+                        particleCount: 16,
+                      ),
+                      Container(
+                        width: 72,
+                        height: 72,
+                        decoration: BoxDecoration(
+                          color: AppColors.ink,
+                          borderRadius: BorderRadius.circular(20),
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.star.withOpacity(0.25),
+                              blurRadius: 18,
+                              offset: const Offset(0, 6),
+                            ),
+                          ],
+                        ),
+                        child: Icon(a.icon, color: AppColors.star, size: 38),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
+                const Text('ACHIEVEMENT UNLOCKED',
+                    style: TextStyle(
+                        color: AppColors.grey500,
+                        fontSize: 11,
+                        letterSpacing: 1.2,
+                        fontWeight: FontWeight.w700)),
+                const SizedBox(height: 6),
+                Text(a.title,
+                    textAlign: TextAlign.center, style: AppTheme.number(20)),
+                const SizedBox(height: 4),
+                Text(a.description,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(color: AppColors.grey700)),
+                if (a.rewardCoins > 0) ...[
+                  const SizedBox(height: 10),
+                  TweenAnimationBuilder<int>(
+                    tween: IntTween(begin: 0, end: a.rewardCoins),
+                    duration: const Duration(milliseconds: 700),
+                    curve: Curves.easeOutCubic,
+                    builder: (context, v, _) => Text('+$v coins',
+                        style: AppTheme.number(16, color: AppColors.coin)),
+                  ),
+                ],
+                const SizedBox(height: 8),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: const Text('Nice!'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// A single "words to find" chip. Plays a quick pop/bounce the moment its
+/// word transitions from unfound to found, echoing the grid's celebration
+/// without duplicating its logic.
+class _WordChip extends StatefulWidget {
+  final String word;
+  final bool found;
+  const _WordChip({required this.word, required this.found});
+
+  @override
+  State<_WordChip> createState() => _WordChipState();
+}
+
+class _WordChipState extends State<_WordChip>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _bounce = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 380),
+  );
+
+  @override
+  void didUpdateWidget(covariant _WordChip oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!oldWidget.found && widget.found) {
+      _bounce.forward(from: 0);
+    }
+  }
+
+  @override
+  void dispose() {
+    _bounce.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final found = widget.found;
+    return AnimatedBuilder(
+      animation: _bounce,
+      builder: (context, child) {
+        final t = _bounce.value;
+        final bump = t <= 0.5 ? t / 0.5 : (1 - t) / 0.5;
+        return Transform.scale(scale: 1 + bump * 0.22, child: child);
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 250),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: found ? AppColors.ink : AppColors.grey100,
+          borderRadius: BorderRadius.circular(AppRadii.pill),
+        ),
+        child: Text(
+          widget.word,
+          style: TextStyle(
+            color: found ? Colors.white : AppColors.grey700,
+            fontWeight: FontWeight.w700,
+            fontSize: 13,
+            decoration:
+                found ? TextDecoration.lineThrough : TextDecoration.none,
+            decorationColor: Colors.white,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _TopBar extends StatelessWidget {
   final WordSearchController controller;
   final int coins;
@@ -490,8 +685,7 @@ class _TopBar extends StatelessWidget {
           AnimatedBuilder(
             animation: controller,
             builder: (_, __) => Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
               decoration: BoxDecoration(
                 color: AppColors.grey100,
                 borderRadius: BorderRadius.circular(AppRadii.pill),
@@ -501,8 +695,7 @@ class _TopBar extends StatelessWidget {
                   const Icon(Icons.timer_outlined,
                       size: 16, color: AppColors.grey700),
                   const SizedBox(width: 5),
-                  Text(controller.formattedTime(),
-                      style: AppTheme.number(15)),
+                  Text(controller.formattedTime(), style: AppTheme.number(15)),
                 ],
               ),
             ),

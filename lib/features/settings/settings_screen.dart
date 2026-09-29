@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../core/app_config.dart';
+import '../../core/app_route.dart';
 import '../../core/theme.dart';
 import '../../services/audio_service.dart';
 import '../../services/notification_service.dart';
@@ -81,8 +82,7 @@ class SettingsScreen extends StatelessWidget {
             title: 'Notifications',
             subtitle: 'Daily reward reminders',
             active: settings.notifications,
-            onTap: () =>
-                _toggleNotifications(context, !settings.notifications),
+            onTap: () => _toggleNotifications(context, !settings.notifications),
             trailing: _ToggleSwitch(
               value: settings.notifications,
               onChanged: (v) => _toggleNotifications(context, v),
@@ -100,8 +100,8 @@ class SettingsScreen extends StatelessWidget {
                 : 'One-time purchase • lifetime ad-free',
             active: player.premium,
             activeColor: AppColors.success,
-            onTap: () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const PremiumScreen())),
+            onTap: () => Navigator.of(context)
+                .push(FadeSlideRoute(builder: (_) => const PremiumScreen())),
             trailing: player.premium
                 ? const Icon(Icons.check_circle_rounded,
                     color: AppColors.success)
@@ -165,8 +165,7 @@ class SettingsScreen extends StatelessWidget {
           const SizedBox(height: 20),
           const Center(
             child: Text('Version ${AppConfig.appVersion}',
-                style:
-                    TextStyle(color: AppColors.grey500, fontSize: 12)),
+                style: TextStyle(color: AppColors.grey500, fontSize: 12)),
           ),
         ],
       ),
@@ -196,9 +195,8 @@ class SettingsScreen extends StatelessWidget {
       path: AppConfig.contactEmail,
       query: 'subject=${Uri.encodeComponent('${AppConfig.appName} Support')}',
     );
-    final launched =
-        await launchUrl(uri, mode: LaunchMode.externalApplication)
-            .catchError((_) => false);
+    final launched = await launchUrl(uri, mode: LaunchMode.externalApplication)
+        .catchError((_) => false);
     if (!launched && context.mounted) {
       showDialog(
         context: context,
@@ -219,9 +217,9 @@ class SettingsScreen extends StatelessWidget {
   }
 
   Future<void> _openUrl(BuildContext context, String url) async {
-    final ok = await launchUrl(Uri.parse(url),
-            mode: LaunchMode.externalApplication)
-        .catchError((_) => false);
+    final ok =
+        await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication)
+            .catchError((_) => false);
     if (!ok && context.mounted) _todo(context);
   }
 
@@ -350,8 +348,7 @@ class _ToggleSwitch extends StatelessWidget {
       activeTrackColor: AppColors.accent,
       inactiveThumbColor: Colors.white,
       inactiveTrackColor: AppColors.grey300,
-      trackOutlineColor:
-          WidgetStateProperty.all(Colors.transparent),
+      trackOutlineColor: WidgetStateProperty.all(Colors.transparent),
     );
   }
 }

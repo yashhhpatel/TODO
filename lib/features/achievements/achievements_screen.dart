@@ -24,8 +24,7 @@ class AchievementsScreen extends StatelessWidget {
               children: [
                 Text('$unlocked / ${kAchievements.length} unlocked',
                     style: const TextStyle(
-                        color: AppColors.grey700,
-                        fontWeight: FontWeight.w600)),
+                        color: AppColors.grey700, fontWeight: FontWeight.w600)),
               ],
             ),
           ),
@@ -36,10 +35,23 @@ class AchievementsScreen extends StatelessWidget {
               separatorBuilder: (_, __) => const SizedBox(height: 12),
               itemBuilder: (context, i) {
                 final a = kAchievements[i];
-                return _AchievementCard(
-                  achievement: a,
-                  unlocked: player.isAchievementUnlocked(a.id),
-                  progress: player.achievementProgress(a),
+                // Cap the stagger so cards far down the list don't lag.
+                final delay = (i < 10 ? i : 10) * 40;
+                return TweenAnimationBuilder<double>(
+                  tween: Tween(begin: 0, end: 1),
+                  duration: Duration(milliseconds: 320 + delay),
+                  curve: Curves.easeOutCubic,
+                  builder: (context, v, c) => Opacity(
+                    opacity: v,
+                    child: Transform.translate(
+                        offset: Offset(0, (1 - v) * 14), child: c),
+                  ),
+                  child: _AchievementCard(
+                    achievement: a,
+                    unlocked: player.isAchievementUnlocked(a.id),
+                    progress: player.achievementProgress(a),
+                    delayMs: delay,
+                  ),
                 );
               },
             ),
@@ -54,10 +66,12 @@ class _AchievementCard extends StatelessWidget {
   final Achievement achievement;
   final bool unlocked;
   final double progress;
+  final int delayMs;
   const _AchievementCard({
     required this.achievement,
     required this.unlocked,
     required this.progress,
+    this.delayMs = 0,
   });
 
   @override
@@ -91,14 +105,20 @@ class _AchievementCard extends StatelessWidget {
                     style: const TextStyle(
                         color: AppColors.grey500, fontSize: 12)),
                 const SizedBox(height: 8),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(4),
-                  child: LinearProgressIndicator(
-                    value: progress,
-                    minHeight: 6,
-                    backgroundColor: AppColors.grey200,
-                    valueColor: AlwaysStoppedAnimation(
-                        unlocked ? AppColors.success : AppColors.ink),
+                TweenAnimationBuilder<double>(
+                  tween: Tween(begin: 0, end: progress),
+                  duration: Duration(milliseconds: 900 + delayMs),
+                  curve: Interval(delayMs / (900 + delayMs), 1,
+                      curve: Curves.easeOutCubic),
+                  builder: (context, v, _) => ClipRRect(
+                    borderRadius: BorderRadius.circular(4),
+                    child: LinearProgressIndicator(
+                      value: v,
+                      minHeight: 6,
+                      backgroundColor: AppColors.grey200,
+                      valueColor: AlwaysStoppedAnimation(
+                          unlocked ? AppColors.success : AppColors.ink),
+                    ),
                   ),
                 ),
               ],

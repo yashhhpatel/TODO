@@ -115,7 +115,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               padding: const EdgeInsets.all(24),
               child: PrimaryButton(
                 label: isLast ? 'Get Started' : 'Next',
-                icon: isLast ? Icons.play_arrow_rounded : Icons.arrow_forward_rounded,
+                icon: isLast
+                    ? Icons.play_arrow_rounded
+                    : Icons.arrow_forward_rounded,
                 onTap: () {
                   if (isLast) {
                     _finish();
